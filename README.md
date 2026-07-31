@@ -5,7 +5,25 @@
 [![Web-Standard](https://img.shields.io/badge/Web%20APIs-WebHID%20%7C%20Gamepad-00F0FF.svg)](https://developer.mozilla.org)
 [![CPU Usage](https://img.shields.io/badge/CPU%20Usage-0.0%25%20Ultra--Light-00FF88.svg)](#-超軽量設計)
 
-PCに同時接続された**ゲームコントローラー、キーボード、左手デバイス（Razer Tartarus等）、マウス、VR機器、フットペダル、Bluetooth機器**の入力信号をリアルタイムに視覚化し、「どれが今反応しているか」を一目で識別＆ワンタップでON/OFF（有効化・無効化・ソフトミュート）できる高機能入力管理アプリケーションです。
+---
+
+## 🚀 配布・ご利用方法（ハイブリッド形式）
+
+用途や相手に合わせて、**2つの方法**でご利用・配布が可能です！
+
+### 🌐 1. インストール不要・Webブラウザで今すぐ使う (Firebase Hosting版)
+> 📱 **スマホ・サブモニター・他ユーザーへの共有に最適**  
+> ダウンロードや設定不要。URLを開くだけで1秒で起動します。
+- 👉 **[InputNexus Web版を起動する (Firebase)](https://input-nexus.web.app)** *(※Firebaseデプロイ後リンク)*
+
+---
+
+### 📦 2. PCにダウンロード・デスクトップアプリとして使う (GitHub / Zip版)
+> 💻 **オフライン環境・デスクトップ直起動・スタートメニュー登録に最適**  
+- 📥 **[InputNexus_Package.zip をダウンロード](https://github.com/yukiyanA-Git/device-controller-app/raw/main/InputNexus_Package.zip)**
+- 使い方:
+  - 解凍して `Launch-InputNexus.bat` を押すとデスクトップアプリとして起動します。
+  - `Install-InputNexus.ps1` を右クリック➔PowerShell実行で、デスクトップ＆スタートメニューにショートカットが自動登録されます。
 
 ---
 
@@ -22,39 +40,16 @@ PCに同時接続された**ゲームコントローラー、キーボード、�
   - USB Vendor ID / Product ID および HID Usage Class による自動カテゴリ分類。
 - 🚀 **CPU負荷 0.0% 超軽量動作**:
   - ゲームのフレームレート（FPS）低下や入力遅延（インプットラグ）を一切起こさないハードウェアアクセラレーション設計。
-- 📱 **スマホ / サブモニター連携**:
-  - PC画面に一切重ねず、手元のスマホやサブ画面からタッチ操作で入力状態を制御可能。
 
 ---
 
-## 🚀 使い方・起動方法
-
-### 方法 1: デスクトップアプリとして起動 (`Launch-InputNexus.bat`)
-`Launch-InputNexus.bat` をダブルクリックするだけで、アドレスバーのない独立したネイティブデスクトップアプリウィンドウとして即座に起動します。
-
-### 方法 2: Windowsにインストール (`Install-InputNexus.ps1`)
-`Install-InputNexus.ps1` を右クリックして「PowerShell で実行」を選択すると、デスクトップおよびスタートメニューに専用ショートカットアイコンが作成されます。
-
-### 方法 3: ブラウザで直接開く (`index_standalone.html`)
-`index_standalone.html` をダブルクリックして、EdgeやChromeなどのブラウザで即座に起動できます。
-
----
-
-## 📤 友人・他ユーザーへの配布方法
-
-本リポジトリに含まれる `InputNexus_Package.zip` をそのまま送信するか、`index_standalone.html` を相手に渡すだけで、他のPCでもインストール不要で即座にご利用いただけます。
-
----
-
-## 🌐 Firebase Hosting 無料Webデプロイ対応
-
-`firebase.json` を同梱しており、以下の手順でWeb上に無料公開できます：
+## 🛠️ 開発者・Firebaseデプロイ手順
 
 ```bash
-# 1. ビルド
+# ビルド
 npm run build
 
-# 2. Firebaseへデプロイ
+# Firebase Hostingへの公開
 npx firebase deploy
 ```
 
