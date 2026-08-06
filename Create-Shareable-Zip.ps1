@@ -6,8 +6,8 @@ if (Test-Path $ZipPath) {
     Remove-Item $ZipPath -Force
 }
 
-Write-Host "Creating shareable zip package..." -ForegroundColor Cyan
+Write-Host "Creating shareable zip package with custom icon..." -ForegroundColor Cyan
 
-Compress-Archive -Path "$SourceDir\index_standalone.html", "$SourceDir\Launch-InputNexus.bat", "$SourceDir\Install-InputNexus.ps1", "$SourceDir\README.txt" -DestinationPath $ZipPath -Force
+Compress-Archive -Path "$SourceDir\index_standalone.html", "$SourceDir\Launch-InputNexus.bat", "$SourceDir\Install-InputNexus.ps1", "$SourceDir\README.txt", "$SourceDir\icon.jpg" -DestinationPath $ZipPath -Force
 
 Write-Host "Zip package created successfully: $ZipPath" -ForegroundColor Green
