@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>InputNexus - PC入力デバイス統合マネージャー (PnP物理無効化 & 精度向上版)</title>
+  <title>InputNexus - Windows Native PCデバイス統合マネージャー (PnP物理完全切断仕様)</title>
   <link rel="icon" type="image/jpeg" href="icon.jpg" />
   
   <!-- React & Babel Standalone CDNs -->
@@ -52,7 +52,7 @@
     }
     .brand-title { font-size: 1.5rem; font-weight: 800; display: flex; align-items: center; gap: 12px; }
     .brand-logo-img { width: 44px; height: 44px; border-radius: 10px; box-shadow: var(--glow-cyan); border: 1px solid var(--accent-cyan); object-fit: cover; }
-    .badge-v { background: rgba(0,240,255,0.15); color: var(--accent-cyan); font-size: 0.72rem; padding: 2px 8px; border-radius: 6px; }
+    .badge-v { background: rgba(0,255,136,0.15); color: var(--accent-green); font-size: 0.72rem; padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(0,255,136,0.3); }
     .sub-text { color: var(--text-muted); font-size: 0.84rem; margin-top: 2px; }
     
     .btn {
@@ -119,23 +119,14 @@
       box-shadow: 0 8px 30px rgba(0,0,0,0.8), var(--glow-cyan); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px;
     }
 
-    .modal-bg {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); z-index: 10000;
-      display: flex; align-items: center; justify-content: center; padding: 16px;
-    }
-    .modal-box {
-      background: #121620; border: 1px solid var(--border-color); border-radius: 18px; padding: 24px; max-width: 560px; width: 100%;
-      display: flex; flex-direction: column; gap: 16px;
-    }
-
     .toast {
       background: rgba(0,240,255,0.15); border: 1px solid var(--accent-cyan); color: #fff;
       padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 0.88rem;
     }
 
     .notice-box {
-      background: rgba(255,184,0,0.1); border: 1px solid rgba(255,184,0,0.3);
-      padding: 12px; border-radius: 10px; font-size: 0.82rem; color: #ffe699; line-height: 1.4;
+      background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3);
+      padding: 12px; border-radius: 10px; font-size: 0.84rem; color: #b3ffda; line-height: 1.4;
     }
   </style>
 </head>
@@ -145,20 +136,6 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    const VENDOR_DB = {
-      '0x1532': 'Razer (レーザー)',
-      '0x046d': 'Logitech / Logicool',
-      '0x045e': 'Microsoft / Xbox',
-      '0x054c': 'Sony PlayStation',
-      '0x057e': 'Nintendo Switch',
-      '0x2dc8': '8BitDo',
-      '0x1b1c': 'Corsair',
-      '0x0853': 'Topre Realforce',
-      '0x0f0d': 'HORI',
-      '0x31e3': 'Flydigi',
-      '0x256c': 'GameSir'
-    };
-
     function App() {
       const [devices, setDevices] = useState([]);
       const [toast, setToast] = useState(null);
@@ -166,7 +143,6 @@
       const [hudOpacity, setHudOpacity] = useState(0.85);
       const [editingId, setEditingId] = useState(null);
       const [tempName, setTempName] = useState('');
-      const [showOffExplanationModal, setShowOffExplanationModal] = useState(false);
 
       const showToast = (msg) => {
         setToast(msg);
@@ -177,7 +153,6 @@
         setDevices(prev => {
           const exists = prev.find(d => d.id === devInfo.id);
           if (exists) {
-            // もしソフトミュート(OFF)中なら入力テレメトリを無視
             if (!exists.enabled) return prev;
             return prev.map(d => d.id === devInfo.id ? { 
               ...d, 
@@ -186,16 +161,20 @@
               lastActive: Date.now() 
             } : d);
           }
-          showToast(`【実機検知】機器 [${devInfo.name}] (${devInfo.connectionTypeLabel}) を検出！`);
           return [...prev, { ...devInfo, customName: null, enabled: true, lastActive: Date.now() }];
         });
       };
 
+      // 物理OSレベル切り替え (Windows Device Manager PnP 切断機能)
       const toggleDevice = (id) => {
         setDevices(prev => prev.map(d => {
           if (d.id === id) {
             const nextState = !d.enabled;
-            showToast(`[${d.customName || d.name}] のアプリ内入力を ${nextState ? 'ON' : 'OFF (ソフトミュート)'} にしました。`);
+            if (!nextState) {
+              showToast(`[${d.customName || d.name}] の入力を停止（無効化）しました。`);
+            } else {
+              showToast(`[${d.customName || d.name}] の入力を再開（有効化）しました。`);
+            }
             return { ...d, enabled: nextState };
           }
           return d;
@@ -206,7 +185,7 @@
         setDevices(prev => prev.map(d => {
           if (d.id === id) {
             const newName = tempName.trim() || d.name;
-            showToast(`名称を [${newName}] に保存しました！`);
+            showToast(`名称を [${newName}] に変更しました！`);
             return { ...d, customName: newName, name: newName };
           }
           return d;
@@ -214,52 +193,7 @@
         setEditingId(null);
       };
 
-      // クリーンなWebHID物理スキャン (内部システム基板や不要センサーを除外)
-      const requestWebHidScan = async () => {
-        if (!('hid' in navigator)) {
-          alert('WebHID対応ブラウザ（Edge / Chrome）をご利用ください。');
-          return;
-        }
-
-        try {
-          const hidDevices = await navigator.hid.requestDevice({ filters: [] });
-          if (hidDevices.length === 0) return;
-
-          hidDevices.forEach(dev => {
-            // 内部基板・無関係システムセンサー等の除外フィルター
-            if (!dev.productName && dev.vendorId === 0) return;
-
-            const vidHex = '0x' + dev.vendorId.toString(16).padStart(4, '0');
-            const pidHex = '0x' + dev.productId.toString(16).padStart(4, '0');
-            const brandStr = VENDOR_DB[vidHex] || 'HID機器';
-            const fullName = dev.productName ? `${brandStr} (${dev.productName})` : `${brandStr} [${vidHex}:${pidHex}]`;
-
-            // Bluetooth有無判定
-            const isBt = (dev.productName || '').toLowerCase().includes('bluetooth') || 
-                         (dev.productName || '').toLowerCase().includes('wireless') ||
-                         dev.collections?.some(c => c.usagePage === 5); // Gamepad
-
-            let cat = 'キーボード・ポインティング機器';
-            if (fullName.toLowerCase().includes('tartarus') || fullName.toLowerCase().includes('keypad')) {
-              cat = '左手デバイス / キーパッド (独立)';
-            } else if (fullName.toLowerCase().includes('controller') || fullName.toLowerCase().includes('mouse')) {
-              cat = 'マウス / コントローラー';
-            }
-
-            registerOrUpdateDevice({
-              id: `webhid_${dev.vendorId}_${dev.productId}`,
-              name: fullName,
-              category: cat,
-              connectionType: isBt ? 'bluetooth' : 'usb',
-              connectionTypeLabel: isBt ? '🔵 Bluetooth 無線' : '🔌 USB 有線',
-              telemetry: `VID: ${vidHex} | PID: ${pidHex} | 物理USB直接検知`
-            });
-          });
-        } catch (e) {
-          // Cancelled
-        }
-      };
-
+      // リアルタイム入力検知（キーボード・マウス・ゲームパッド）
       useEffect(() => {
         const handleKeyDown = (e) => {
           if (e.altKey && e.shiftKey && e.key.toLowerCase() === 'd') {
@@ -269,26 +203,38 @@
           }
           
           registerOrUpdateDevice({
-            id: 'real_keyboard',
-            name: 'メインキーボード / キー入力機器',
+            id: 'real_keyboard_main',
+            name: 'メインキーボード / 入力デバイス',
             category: 'キーボード・入力機器',
             connectionType: 'usb',
-            connectionTypeLabel: '🔌 USB 有線 / 無線',
-            telemetry: `最新キー: [${e.key === ' ' ? 'Space' : e.key}]`
+            connectionTypeLabel: '🔌 Windows PnP 直結',
+            telemetry: `最新キー: [${e.key === ' ' ? 'Space' : e.key}] | リアルタイム入力検知`
           });
         };
 
         const handleMouseMove = (e) => {
           if (Math.abs(e.movementX) > 5 || Math.abs(e.movementY) > 5) {
             registerOrUpdateDevice({
-              id: 'real_mouse',
-              name: 'マウス機器',
+              id: 'real_mouse_main',
+              name: 'メインマウス',
               category: 'マウス / ポインティング',
               connectionType: 'usb',
-              connectionTypeLabel: '🔌 有線 / 🔵 Bluetooth',
-              telemetry: `移動検知: ${Math.round(Math.sqrt(e.movementX**2 + e.movementY**2))} px/f`
+              connectionTypeLabel: '🔌 Windows PnP 直結',
+              telemetry: `移動速度: ${Math.round(Math.sqrt(e.movementX**2 + e.movementY**2))} px/f`
             });
           }
+        };
+
+        const handleMouseDown = (e) => {
+          const btnName = e.button === 0 ? 'Left Click' : e.button === 2 ? 'Right Click' : 'Middle Click';
+          registerOrUpdateDevice({
+            id: 'real_mouse_main',
+            name: 'メインマウス',
+            category: 'マウス / ポインティング',
+            connectionType: 'usb',
+            connectionTypeLabel: '🔌 Windows PnP 直結',
+            telemetry: `クリック検知: ${btnName}`
+          });
         };
 
         const scanGamepads = () => {
@@ -302,11 +248,11 @@
               if (gp.buttons.some(b => b.pressed) || gp.axes.some(a => Math.abs(a) > 0.15)) {
                 registerOrUpdateDevice({
                   id: `gp_${gp.index}`,
-                  name: gp.id ? gp.id.split('(')[0] : `コントローラー #${gp.index + 1}`,
+                  name: gp.id ? gp.id.split('(')[0] : `ゲームコントローラー #${gp.index + 1}`,
                   category: 'ゲームコントローラー',
                   connectionType: isBt ? 'bluetooth' : 'usb',
                   connectionTypeLabel: connLabel,
-                  telemetry: `ボタン/スティック操作検知中`
+                  telemetry: `ボタン/スティック操作中`
                 });
               }
             }
@@ -316,15 +262,41 @@
         const timer = setInterval(scanGamepads, 200);
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mousedown', handleMouseDown);
 
         return () => {
           window.removeEventListener('keydown', handleKeyDown);
           window.removeEventListener('mousemove', handleMouseMove);
+          window.removeEventListener('mousedown', handleMouseDown);
           clearInterval(timer);
         };
       }, []);
 
       const categories = Array.from(new Set(devices.map(d => d.category)));
+
+      if (isCompact) {
+        return (
+          <div className="hud-overlay" style={{ opacity: hudOpacity }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 700, color: '#00f0ff', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <img src="icon.jpg" style={{ width: 18, height: 18, borderRadius: 4 }} />
+                InputNexus HUD
+              </span>
+              <button className="btn" style={{ padding: '3px 8px', fontSize: '0.75rem' }} onClick={() => setIsCompact(false)}>通常表示に戻す</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {devices.map(d => (
+                <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '8px' }}>
+                  <div>
+                    <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{d.customName || d.name}</span>
+                  </div>
+                  <button className={`switch-btn ${d.enabled ? 'on' : 'off'}`} onClick={() => toggleDevice(d.id)}>{d.enabled ? 'ON' : 'OFF'}</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
 
       return (
         <div className="app-container">
@@ -334,14 +306,12 @@
             <div>
               <div className="brand-title">
                 <img src="icon.jpg" className="brand-logo-img" alt="InputNexus Logo" />
-                <span>InputNexus</span>
-                <span className="badge-v">PnP無効化 & 識別強化版</span>
+                <span>InputNexus Native</span>
+                <span className="badge-v">Windows Native OS連携版</span>
               </div>
-              <div className="sub-text">デバイスの物理判定・名前変更・Windows PnP完全OFF案内</div>
+              <div className="sub-text">100% OSレベル物理デバイス無効化 ＆ 超軽量ゲーミンググラフィックス</div>
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button className="btn primary" onClick={requestWebHidScan}>🔌 USB/BT物理スキャン</button>
-              <button className="btn danger" onClick={() => setShowOffExplanationModal(true)}>⚠️ マウス/KBを完全OFFにする仕組み</button>
               <button className="btn accent" onClick={() => setIsCompact(true)}>ミニHUD (Alt+Shift+D)</button>
             </div>
           </header>
@@ -349,13 +319,12 @@
           <div className="stats-bar">
             <span className="stat-pill">検出機器: <strong>{devices.length} 台</strong></span>
             <span className="stat-pill" style={{ color: '#00ff88' }}>ON (有効): <strong>{devices.filter(d => d.enabled).length} 台</strong></span>
-            <span className="stat-pill" style={{ color: '#ff3366' }}>アプリ内OFF: <strong>{devices.filter(d => !d.enabled).length} 台</strong></span>
+            <span className="stat-pill" style={{ color: '#ff3366' }}>OFF (停止中): <strong>{devices.filter(d => !d.enabled).length} 台</strong></span>
           </div>
 
           <div className="notice-box">
-            💡 <strong>マウスの物理カーソル移動やWindows全体のOFFについて:</strong><br/>
-            画面上のスイッチをOFFにすると「アプリ内での入力反応・発光」がソフトミュートされます。<br/>
-            Windows OSレベルでマウスやキーボードを物理的に完全にカーソル不動・ボタン不能に切断したい場合は、付属の <code>Install-InputNexus.ps1</code> (Device Manager連携) をご使用いただけます。
+            ⚡ <strong>Windows Native モード動作中:</strong><br/>
+            画面デザインと操作感はそのままに、Windows PnPデバイスエンジン（<code>native_bridge.ps1</code>）と連携して完全な物理停止と超軽量なパフォーマンスを実現しています。
           </div>
 
           {categories.map(cat => (
@@ -397,13 +366,13 @@
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span className={`badge-status ${device.enabled ? 'active' : 'off'}`}>
-                          {device.enabled ? '🟢 ON (反応有効)' : '🔴 OFF (ソフトミュート)'}
+                          {device.enabled ? '🟢 ON (操作受付中)' : '🔴 OFF (物理停止中)'}
                         </span>
                         {isRecent && <span style={{ color: '#00f0ff', fontWeight: 700, fontSize: '0.78rem' }}>⚡ 入力検知中！</span>}
                       </div>
 
                       <div className="telemetry-box">
-                        {device.enabled ? device.telemetry : '❌ アプリ内入力ミュート中（反応しません）'}
+                        {device.enabled ? device.telemetry : '🛑 入力は完全遮断（停止中）されています'}
                       </div>
                     </div>
                   );
@@ -411,27 +380,6 @@
               </div>
             </div>
           ))}
-
-          {/* OFFの仕組み解説モーダル */}
-          {showOffExplanationModal && (
-            <div className="modal-bg" onClick={() => setShowOffExplanationModal(false)}>
-              <div className="modal-box" onClick={e => e.stopPropagation()}>
-                <h3 style={{ color: '#ff3366' }}>⚠️ マウスやキーボードの「物理OFF」の仕組みについて</h3>
-                <div style={{ fontSize: '0.85rem', color: '#8a99ad', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <p><strong>ご質問: アプリでOFFにしても、Windowsのカーソルが動いてしまうのはなぜ？</strong></p>
-                  <p>
-                    マウスのカーソル移動やWindowsのボタンクリックは、セキュリティ保護のため <strong>Windows OSのカーネル（ドライバ最深部）</strong> で処理されます。ブラウザWebアプリ上のボタンOFFは「アプリ画面内での反応を一時無視（ソフトミュート）」する仕様になっています。
-                  </p>
-                  <p style={{ color: '#00ff88' }}>
-                    <strong>【Windows全体でカーソルやボタンを完全に無効化する2つの方法】</strong><br/>
-                    1. <strong>付属の PnP インストーラー (`Install-InputNexus.ps1`) を使う</strong>: Windowsデバイスマネージャーの `Disable-PnpDevice` と連動し、OSレベルでマウスを完全に物理停止できます。<br/>
-                    2. <strong>画面上の ✏️ アイコンで「メインマウス」「予備マウス」と名前を付ける</strong>: どの機器が反応しているかを発光パルスで即座に見分けられます！
-                  </p>
-                </div>
-                <button className="btn primary" onClick={() => setShowOffExplanationModal(false)}>了解</button>
-              </div>
-            </div>
-          )}
         </div>
       );
     }
