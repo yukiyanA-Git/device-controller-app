@@ -1,57 +1,47 @@
-# 🎮 InputNexus - PCマルチ入力デバイス統合マネージャー & リアルタイムアナライザー
+# 🎮 InputNexus Native - PCマルチ入力デバイス統合マネージャー (Windows Native OS連携版)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-0078D4.svg)](https://microsoft.com)
-[![Web-Standard](https://img.shields.io/badge/Web%20APIs-WebHID%20%7C%20Gamepad-00F0FF.svg)](https://developer.mozilla.org)
+[![Engine](https://img.shields.io/badge/Engine-Windows%20PnP%20Native%20Engine-00F0FF.svg)](#-windows-native-エンジン)
 [![CPU Usage](https://img.shields.io/badge/CPU%20Usage-0.0%25%20Ultra--Light-00FF88.svg)](#-超軽量設計)
 
----
-
-## 🚀 配布・ご利用方法（ハイブリッド形式）
-
-用途や相手に合わせて、**2つの方法**でご利用・配布が可能です！
-
-### 🌐 1. インストール不要・Webブラウザで今すぐ使う (Firebase Hosting版)
-> 📱 **スマホ・サブモニター・他ユーザーへの共有に最適**  
-> ダウンロードや設定不要。URLを開くだけで1秒で起動します。
-- 👉 **[InputNexus Web版を起動する (Firebase)](https://input-nexus.web.app)** *(※Firebaseデプロイ後リンク)*
-
----
-
-### 📦 2. PCにダウンロード・デスクトップアプリとして使う (GitHub / Zip版)
-> 💻 **オフライン環境・デスクトップ直起動・スタートメニュー登録に最適**  
-- 📥 **[InputNexus_Package.zip をダウンロード](https://github.com/yukiyanA-Git/device-controller-app/raw/main/InputNexus_Package.zip)**
-- 使い方:
-  - 解凍して `Launch-InputNexus.bat` を押すとデスクトップアプリとして起動します。
-  - `Install-InputNexus.ps1` を右クリック➔PowerShell実行で、デスクトップ＆スタートメニューにショートカットが自動登録されます。
+PCに同時接続された**ゲームコントローラー、キーボード、左手デバイス（Razer Tartarus等）、テンキー、マウス、VR機器、フットペダル、Bluetooth機器**の入力信号をリアルタイムに識別・視覚化し、**Windows OSレベルでの物理無効化/完全停止および個別ON/OFF切り替え**を行えるゲーマー向け超軽量デスクトップアプリケーションです。
 
 ---
 
 ## ✨ 主な特徴
 
-- ⚡ **リアルタイム発光アクティビティパルス**: キー押下、ボタン操作、スティック傾き、マウス移動に反応してカードがネオンパルス発光。
-- 🟢/🟡/🔴 **カテゴリ独立 & 主従ステータス管理**:
-  - 🟢 `MAIN` (アクティブ) / 🟡 `NEXT` (次回自動有効化候補) / 🔴 `OFF` (無効)
-  - 左手デバイスをONにしてもメインキーボードが誤って勝手にOFFにならない**安全トグル設計**。
+- ⚡ **リアルタイム発光アクティビティパルス**: キー押下、ボタン操作、スティック傾き、マウス移動に反応して該当カードがネオン発光。
+- 🛡️ **Windows OS PnP デバイス物理停止**:
+  - アプリ内のON/OFFスイッチ切り替えにより、特定のマウスやキーボードをWindowsレベルで物理切断（カーソル不動・ボタン全無効化）。
+  - **誤無効化防止保護**: 動作中の最後の1台のマウスを誤って切断しないセーフティ確認ダイアログ機能。
+- 🚨 **緊急一括復旧ショートカット (`Ctrl + Alt + Shift + R`)**:
+  - 万が一の操作不可時やPCフリーズ時でも、キーボードショートカット一発ですべての機器の無効化を即座に解除・一括ONリセット。
+- ✏️ **機器の自由なニックネーム（命名）保存**:
+  - ✏️ アイコンを押すことで、「IBMテンキー」「メインキーボード」「左手Tartarus」など好きな名前に命名・保存可能。
+- 🔵 **Bluetooth深層型番抽出 (PnP Registry Direct Query)**:
+  - Windows PnPレジストリからBluetooth/USBハードウェアの型番（例: `MX Master 3S`, `8BitDo Controller`）を直接読み出し表示。
 - 🎮 **フルスクリーンゲーム対応「ミニHUDモード」**:
   - `Alt + Shift + D` で画面隅に常駐する超小型オーバーレイへ即座に切替。
   - **半透明スライダー (20%〜100%)** でゲーム画面を妨げずに設置可能。
-- 🥽 **VR機器 & フットペダル自動識別**:
-  - USB Vendor ID / Product ID および HID Usage Class による自動カテゴリ分類。
 - 🚀 **CPU負荷 0.0% 超軽量動作**:
   - ゲームのフレームレート（FPS）低下や入力遅延（インプットラグ）を一切起こさないハードウェアアクセラレーション設計。
 
 ---
 
-## 🛠️ 開発者・Firebaseデプロイ手順
+## 🚀 使い方・起動方法
 
-```bash
-# ビルド
-npm run build
+### 1. デスクトップアプリとして起動 (`Launch-InputNexus.bat`)
+`Launch-InputNexus.bat` をダブルクリックするだけで、アドレスバーのない独立したネイティブデスクトップアプリウィンドウとして即座に起動します。
 
-# Firebase Hostingへの公開
-npx firebase deploy
-```
+### 2. Windowsにインストール (`Install-InputNexus.ps1`)
+`Install-InputNexus.ps1` を右クリックして「PowerShell で実行」を選択すると、デスクトップおよびスタートメニューに専用ショートカットアイコンが自動作成されます。
+
+---
+
+## 📤 他ユーザーへの配布方法
+
+リポジトリに含まれる `InputNexus_Package.zip` をそのまま送信するか、`index_standalone.html` を相手に渡すだけで、他のPCでもインストール不要で即座にご利用いただけます。
 
 ---
 
