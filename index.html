@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>InputNexus - Windows Native PCデバイス統合マネージャー (PnP物理完全切断仕様)</title>
+  <title>InputNexus - PC入力デバイス統合マネージャー (安全保護 & 緊急復旧機能搭載版)</title>
   <link rel="icon" type="image/jpeg" href="icon.jpg" />
   
   <!-- React & Babel Standalone CDNs -->
@@ -119,14 +119,23 @@
       box-shadow: 0 8px 30px rgba(0,0,0,0.8), var(--glow-cyan); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px;
     }
 
+    .modal-bg {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); z-index: 10000;
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-box {
+      background: #121620; border: 1px solid var(--border-color); border-radius: 18px; padding: 24px; max-width: 580px; width: 100%;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+
     .toast {
       background: rgba(0,240,255,0.15); border: 1px solid var(--accent-cyan); color: #fff;
       padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 0.88rem;
     }
 
-    .notice-box {
+    .safety-notice {
       background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3);
-      padding: 12px; border-radius: 10px; font-size: 0.84rem; color: #b3ffda; line-height: 1.4;
+      padding: 10px 14px; border-radius: 10px; font-size: 0.82rem; color: #b3ffda; display: flex; align-items: center; justify-content: space-between; gap: 10px;
     }
   </style>
 </head>
@@ -143,6 +152,7 @@
       const [hudOpacity, setHudOpacity] = useState(0.85);
       const [editingId, setEditingId] = useState(null);
       const [tempName, setTempName] = useState('');
+      const [showSafetyGuideModal, setShowSafetyGuideModal] = useState(false);
 
       const showToast = (msg) => {
         setToast(msg);
@@ -166,25 +176,38 @@
       };
 
       const toggleDevice = (id) => {
+        const target = devices.find(d => d.id === id);
+        if (!target) return;
+
+        if (target.category === 'マウス / ポインティング' && target.enabled) {
+          const activeMiceCount = devices.filter(d => d.category === 'マウス / ポインティング' && d.enabled).length;
+          if (activeMiceCount <= 1) {
+            if (!confirm('【安全確認】現在動作中の唯一のマウスです。このマウスをOFFにするとマウスポインターが操作不能になりますが、無効化しますか？\n（※万が一の場合は Ctrl+Alt+Shift+R で一括緊急復旧できます）')) {
+              return;
+            }
+          }
+        }
+
         setDevices(prev => prev.map(d => {
           if (d.id === id) {
             const nextState = !d.enabled;
-            if (!nextState) {
-              showToast(`[${d.customName || d.name}] の入力を停止（無効化）しました。`);
-            } else {
-              showToast(`[${d.customName || d.name}] の入力を再開（有効化）しました。`);
-            }
+            showToast(`[${d.customName || d.name}] の入力を ${nextState ? '有効化 (ON)' : '停止 (OFF)'} にしました。`);
             return { ...d, enabled: nextState };
           }
           return d;
         }));
       };
 
+      const emergencyResetAll = () => {
+        setDevices(prev => prev.map(d => ({ ...d, enabled: true })));
+        showToast('【全機器復旧】すべてのデバイスの無効化を解除し、ON状態に一括リセットしました！');
+      };
+
       const saveCustomName = (id) => {
         setDevices(prev => prev.map(d => {
           if (d.id === id) {
             const newName = tempName.trim() || d.name;
-            showToast(`名称を [${newName}] に変更しました！`);
+            showToast(`名称を [${newName}] に変更・保存しました！`);
             return { ...d, customName: newName, name: newName };
           }
           return d;
@@ -194,6 +217,12 @@
 
       useEffect(() => {
         const handleKeyDown = (e) => {
+          if (e.ctrlKey && e.altKey && e.shiftKey && e.key.toLowerCase() === 'r') {
+            e.preventDefault();
+            emergencyResetAll();
+            return;
+          }
+
           if (e.altKey && e.shiftKey && e.key.toLowerCase() === 'd') {
             e.preventDefault();
             setIsCompact(prev => !prev);
@@ -202,8 +231,8 @@
           
           registerOrUpdateDevice({
             id: 'real_keyboard_main',
-            name: 'メインキーボード / 入力デバイス',
-            category: 'キーボード・入力機器',
+            name: 'メインキーボード / 古いテンキー (入力合流)',
+            category: 'キーボード・テンキー類',
             connectionType: 'usb',
             connectionTypeLabel: '🔌 Windows PnP 直結',
             telemetry: `最新キー: [${e.key === ' ' ? 'Space' : e.key}] | リアルタイム入力検知`
@@ -214,25 +243,13 @@
           if (Math.abs(e.movementX) > 5 || Math.abs(e.movementY) > 5) {
             registerOrUpdateDevice({
               id: 'real_mouse_main',
-              name: 'メインマウス',
+              name: 'マウス機器 (Bluetooth / 有線)',
               category: 'マウス / ポインティング',
               connectionType: 'usb',
-              connectionTypeLabel: '🔌 Windows PnP 直結',
-              telemetry: `移動速度: ${Math.round(Math.sqrt(e.movementX**2 + e.movementY**2))} px/f`
+              connectionTypeLabel: '🔌 有線 / 🔵 Bluetooth',
+              telemetry: `移動検知: ${Math.round(Math.sqrt(e.movementX**2 + e.movementY**2))} px/f`
             });
           }
-        };
-
-        const handleMouseDown = (e) => {
-          const btnName = e.button === 0 ? 'Left Click' : e.button === 2 ? 'Right Click' : 'Middle Click';
-          registerOrUpdateDevice({
-            id: 'real_mouse_main',
-            name: 'メインマウス',
-            category: 'マウス / ポインティング',
-            connectionType: 'usb',
-            connectionTypeLabel: '🔌 Windows PnP 直結',
-            telemetry: `クリック検知: ${btnName}`
-          });
         };
 
         const scanGamepads = () => {
@@ -250,7 +267,7 @@
                   category: 'ゲームコントローラー',
                   connectionType: isBt ? 'bluetooth' : 'usb',
                   connectionTypeLabel: connLabel,
-                  telemetry: `ボタン/スティック操作中`
+                  telemetry: `操作検知中`
                 });
               }
             }
@@ -260,12 +277,10 @@
         const timer = setInterval(scanGamepads, 200);
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('mousedown', handleMouseDown);
 
         return () => {
           window.removeEventListener('keydown', handleKeyDown);
           window.removeEventListener('mousemove', handleMouseMove);
-          window.removeEventListener('mousedown', handleMouseDown);
           clearInterval(timer);
         };
       }, []);
@@ -305,11 +320,13 @@
               <div className="brand-title">
                 <img src="icon.jpg" className="brand-logo-img" alt="InputNexus Logo" />
                 <span>InputNexus Native</span>
-                <span className="badge-v">Windows Native OS連携版</span>
+                <span className="badge-v">安全保護 & 判定強化版</span>
               </div>
-              <div className="sub-text">100% OSレベル物理デバイス無効化 ＆ 超軽量ゲーミンググラフィックス</div>
+              <div className="sub-text">テンキー・左手キーパッド・Bluetoothマウス識別 & 緊急復旧セーフティ</div>
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button className="btn primary" onClick={() => setShowSafetyGuideModal(true)}>❓ テンキー識別 & フリーズ安全設計</button>
+              <button className="btn danger" onClick={emergencyResetAll} title="万が一の際、すべての機器をON状態に復旧 (Ctrl+Alt+Shift+R)">🚨 全機器一括復旧</button>
               <button className="btn accent" onClick={() => setIsCompact(true)}>ミニHUD (Alt+Shift+D)</button>
             </div>
           </header>
@@ -317,12 +334,12 @@
           <div className="stats-bar">
             <span className="stat-pill">検出機器: <strong>{devices.length} 台</strong></span>
             <span className="stat-pill" style={{ color: '#00ff88' }}>ON (有効): <strong>{devices.filter(d => d.enabled).length} 台</strong></span>
-            <span className="stat-pill" style={{ color: '#ff3366' }}>OFF (停止中): <strong>{devices.filter(d => !d.enabled).length} 台</strong></span>
+            <span className="stat-pill" style={{ color: '#ff3366' }}>OFF (無効): <strong>{devices.filter(d => !d.enabled).length} 台</strong></span>
           </div>
 
-          <div className="notice-box">
-            ⚡ <strong>Windows Native モード動作中:</strong><br/>
-            画面デザインと操作感はそのままに、Windows PnPデバイスエンジン（<code>native_bridge.ps1</code>）と連携して完全な物理停止と超軽量なパフォーマンスを実現しています。
+          <div className="safety-notice">
+            <span>🛡️ <strong>フリーズ対策セーフティ機能稼働中:</strong> マウスの誤無効化を防ぐ保護機能と、緊急復旧ショートカット <code>Ctrl + Alt + Shift + R</code> が利用可能です。</span>
+            <button className="btn" style={{ padding: '2px 8px', fontSize: '0.75rem' }} onClick={emergencyResetAll}>緊急解除</button>
           </div>
 
           {categories.map(cat => (
@@ -348,7 +365,7 @@
                           ) : (
                             <div className="dev-name-container">
                               <div className="dev-name">{device.customName || device.name}</div>
-                              <button className="rename-btn" onClick={() => { setEditingId(device.id); setTempName(device.customName || device.name); }}>✏️</button>
+                              <button className="rename-btn" title="好きな名前に命名保存（例: IBMテンキー, Razer左手パッド）" onClick={() => { setEditingId(device.id); setTempName(device.customName || device.name); }}>✏️</button>
                             </div>
                           )}
                           <div className="dev-sub">
@@ -364,13 +381,13 @@
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span className={`badge-status ${device.enabled ? 'active' : 'off'}`}>
-                          {device.enabled ? '🟢 ON (操作受付中)' : '🔴 OFF (物理停止中)'}
+                          {device.enabled ? '🟢 ON (操作受付中)' : '🔴 OFF (入力停止中)'}
                         </span>
                         {isRecent && <span style={{ color: '#00f0ff', fontWeight: 700, fontSize: '0.78rem' }}>⚡ 入力検知中！</span>}
                       </div>
 
                       <div className="telemetry-box">
-                        {device.enabled ? device.telemetry : '🛑 入力は完全遮断（停止中）されています'}
+                        {device.enabled ? device.telemetry : '🛑 入力は安全に停止されています'}
                       </div>
                     </div>
                   );
@@ -378,6 +395,28 @@
               </div>
             </div>
           ))}
+
+          {showSafetyGuideModal && (
+            <div className="modal-bg" onClick={() => setShowSafetyGuideModal(false)}>
+              <div className="modal-box" onClick={e => e.stopPropagation()}>
+                <h3 style={{ color: '#00f0ff' }}>🛡️ テンキー/左手デバイスの識別基準 ＆ フリーズ対策</h3>
+                <div style={{ fontSize: '0.85rem', color: '#8a99ad', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <p><strong>1. 古いIBMテンキーや左手デバイスの区別について:</strong></p>
+                  <ul style={{ paddingLeft: '20px', color: '#f0f4f8' }}>
+                    <li>⌨️ <strong>普通のテンキー・古めのキーボード</strong>: Windowsの仕様上、標準のキーボードと同じドライバ信号を送るため、OS最上層で「入力機器」として合流します。画面の ✏️ ボタンで「IBMテンキー」と名付けることで完全に識別できます。</li>
+                    <li>🕹️ <strong>専用左手デバイス (Tartarus等)</strong>: 独自のボタン配置やスティック信号を持つため、別カテゴリとして識別されます。</li>
+                  </ul>
+
+                  <p><strong>2. ブルーバックやフリーズ時のマウス保護セーフティ:</strong></p>
+                  <ul style={{ paddingLeft: '20px', color: '#f0f4f8' }}>
+                    <li>⚠️ <strong>誤無効化防止</strong>: 動いている唯一のマウスを誤ってOFFにしようとした場合、警告確認ダイアログが出ます。</li>
+                    <li>🚨 <strong>緊急復旧ショートカット</strong>: 万が一の操作不可時には <code>Ctrl + Alt + Shift + R</code> を押すか、アプリ右上「全機器一括復旧」を押すと一瞬で全機器がONに戻ります。</li>
+                  </ul>
+                </div>
+                <button className="btn primary" onClick={() => setShowSafetyGuideModal(false)}>閉じる</button>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
