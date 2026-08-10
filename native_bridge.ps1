@@ -1,10 +1,46 @@
-# InputNexus Deep Hardware Engine - Razer Tartarus Pro Matcher
+# InputNexus Deep Hardware Engine - VID/PID Master Brand Extractor
 param (
     [string]$Action = "list",
     [string]$InstanceId = ""
 )
 
 $ErrorActionPreference = "SilentlyContinue"
+
+# USB Vendor ID (VID) Master Lookup Table
+$VendorTable = @{
+    "046D" = "Logicool / Logitech"
+    "1532" = "Razer"
+    "045E" = "Microsoft / Xbox"
+    "054C" = "Sony PlayStation"
+    "057E" = "Nintendo"
+    "2DC8" = "8BitDo"
+    "1B1C" = "Corsair"
+    "0853" = "Topre Realforce"
+    "0F0D" = "HORI"
+    "31E3" = "Flydigi"
+    "256C" = "GameSir"
+    "04B3" = "IBM"
+    "03F0" = "HP / HyperX"
+    "1038" = "SteelSeries"
+    "28DE" = "Valve Steam / Index"
+    "1E7D" = "Roccat / Turtle Beach"
+    "04D9" = "Holtek Keypad"
+}
+
+# Product ID (PID) Known Hardware Table
+$ProductTable = @{
+    "1532:0244" = "Razer Tartarus Pro"
+    "1532:022B" = "Razer Tartarus V2"
+    "1532:01DD" = "Razer Tartarus Classic"
+    "1532:0113" = "Razer Orbweaver"
+    "046D:C534" = "Logicool Unifying Receiver"
+    "046D:C539" = "Logicool LIGHTSPEED Receiver"
+    "046D:C08B" = "Logicool G502 HERO Mouse"
+    "046D:C094" = "Logicool G PRO X SUPERLIGHT Mouse"
+    "054C:0CE6" = "Sony DualSense Controller"
+    "054C:05C4" = "Sony DUALSHOCK 4 Controller"
+    "057E:2009" = "Nintendo Switch Pro Controller"
+}
 
 if ($Action -eq "list") {
     $pnpDevices = Get-PnpDevice -Class Keyboard, Mouse, HIDClass -Status OK
@@ -15,48 +51,75 @@ if ($Action -eq "list") {
         $friendlyName = (Get-PnpDeviceProperty -InputObject $dev -KeyName "DEVPKEY_Device_FriendlyName").Data
         $deviceDesc = (Get-PnpDeviceProperty -InputObject $dev -KeyName "DEVPKEY_Device_DeviceDesc").Data
 
-        $realName = if ($busName) { $busName } elseif ($friendlyName) { $friendlyName } elseif ($deviceDesc) { $deviceDesc } else { $dev.Name }
         $inst = $dev.InstanceId
+        $parsedBrand = ""
+        $parsedProduct = ""
+        $vidHex = ""
+        $pidHex = ""
 
-        # 1. Hardware Matcher for Razer Tartarus Pro (VID 0x1532)
-        if ($inst -like "*VID_1532*") {
-            if ($inst -like "*PID_0244*") {
-                $realName = "Razer Tartarus Pro"
-            } elseif ($inst -like "*PID_022B*") {
-                $realName = "Razer Tartarus V2"
-            } elseif ($inst -like "*PID_01DD*" -or $inst -like "*PID_0113*") {
-                $realName = "Razer Orbweaver / Tartarus Classic"
-            } elseif ($realName -notlike "*Razer*") {
-                $realName = "Razer Left-hand Keypad (Tartarus)"
+        # Extract VID and PID from InstanceId
+        if ($inst -match "VID_([0-9A-Fa-f]{4})") {
+            $vidHex = $Matches[1].ToUpper()
+            if ($VendorTable.ContainsKey($vidHex)) {
+                $parsedBrand = $VendorTable[$vidHex]
+            }
+        }
+        if ($inst -match "PID_([0-9A-Fa-f]{4})") {
+            $pidHex = $Matches[1].ToUpper()
+        }
+
+        # Check Product Table
+        if ($vidHex -ne "" -and $pidHex -ne "") {
+            $key = $vidHex + ":" + $pidHex
+            if ($ProductTable.ContainsKey($key)) {
+                $parsedProduct = $ProductTable[$key]
             }
         }
 
-        # 2. IBM Keypad / Tenkey Matcher
-        if ($inst -like "*VID_04B3*" -or $realName -like "*IBM*") {
-            $realName = "IBM Keypad / Tenkey"
+        # Construct Human-Readable Name
+        $displayName = ""
+        if ($parsedProduct -ne "") {
+            $displayName = "[" + $parsedBrand + "] " + $parsedProduct
+        } elseif ($parsedBrand -ne "") {
+            $baseType = "Input Device"
+            if ($dev.Class -eq "Mouse" -or $inst -like "*Mouse*") {
+                $baseType = "Mouse"
+            } elseif ($dev.Class -eq "Keyboard") {
+                $baseType = "Keyboard / Keypad"
+            }
+            $displayName = "[" + $parsedBrand + "] " + $baseType + " (VID:" + $vidHex + " PID:" + $pidHex + ")"
+        } elseif ($busName) {
+            $displayName = $busName
+        } elseif ($friendlyName) {
+            $displayName = $friendlyName
+        } elseif ($deviceDesc) {
+            $displayName = $deviceDesc
+        } else {
+            $displayName = $dev.Name
         }
 
-        # 3. Connection Type
+        # Connection Type
         $connType = "usb"
-        if ($inst -like "*BTHENUM*" -or $inst -like "*BLUETOOTH*" -or $realName -like "*Bluetooth*") {
+        if ($inst -like "*BTHENUM*" -or $inst -like "*BLUETOOTH*" -or $displayName -like "*Bluetooth*") {
             $connType = "bluetooth"
         }
 
-        # 4. Category Rules
+        # Category Rules
         $category = "keyboard"
-        if ($inst -like "*VID_1532*" -or $realName -like "*Tartarus*" -or $realName -like "*Orbweaver*" -or $realName -like "*Keypad*") {
+        if ($inst -like "*VID_1532*" -or $displayName -like "*Tartarus*" -or $displayName -like "*Orbweaver*" -or $displayName -like "*Keypad*") {
             $category = "lefthand"
-        } elseif ($realName -like "*Tenkey*" -or $realName -like "*Numeric*" -or $realName -like "*IBM*") {
+        } elseif ($displayName -like "*Tenkey*" -or $displayName -like "*Numeric*" -or $displayName -like "*IBM*") {
             $category = "tenkey"
-        } elseif ($dev.Class -eq "Mouse" -or $realName -like "*Mouse*" -or $realName -like "*Trackball*") {
+        } elseif ($dev.Class -eq "Mouse" -or $displayName -like "*Mouse*" -or $displayName -like "*Trackball*") {
             $category = "mouse"
-        } elseif ($dev.Class -eq "HIDClass" -and ($realName -like "*Gamepad*" -or $realName -like "*Controller*")) {
+        } elseif ($dev.Class -eq "HIDClass" -and ($displayName -like "*Gamepad*" -or $displayName -like "*Controller*" -or $displayName -like "*DualSense*" -or $displayName -like "*Switch Pro*")) {
             $category = "gamepad"
         }
 
         $resultList += [PSCustomObject]@{
             id = $inst
-            name = $realName
+            name = $displayName
+            brand = $parsedBrand
             category = $category
             connection = $connType
             status = $dev.Status
