@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>InputNexus - PC入力デバイス統合マネージャー (安全保護 & 緊急復旧機能搭載版)</title>
+  <title>InputNexus - PC入力デバイス統合マネージャー (Logicool/Razerブランド完全自動表示版)</title>
   <link rel="icon" type="image/jpeg" href="icon.jpg" />
   
   <!-- React & Babel Standalone CDNs -->
@@ -89,7 +89,9 @@
     
     .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
     .dev-name-container { display: flex; align-items: center; gap: 6px; }
-    .dev-name { font-size: 0.98rem; font-weight: 700; }
+    .dev-name { font-size: 0.98rem; font-weight: 700; color: #fff; }
+    .brand-tag { background: rgba(0,240,255,0.15); color: #00f0ff; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; border: 1px solid rgba(0,240,255,0.3); }
+
     .rename-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; padding: 2px 4px; }
 
     .dev-sub { color: var(--text-muted); font-size: 0.76rem; margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -119,15 +121,6 @@
       box-shadow: 0 8px 30px rgba(0,0,0,0.8), var(--glow-cyan); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px;
     }
 
-    .modal-bg {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); z-index: 10000;
-      display: flex; align-items: center; justify-content: center; padding: 16px;
-    }
-    .modal-box {
-      background: #121620; border: 1px solid var(--border-color); border-radius: 18px; padding: 24px; max-width: 580px; width: 100%;
-      display: flex; flex-direction: column; gap: 16px;
-    }
-
     .toast {
       background: rgba(0,240,255,0.15); border: 1px solid var(--accent-cyan); color: #fff;
       padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 0.88rem;
@@ -146,13 +139,24 @@
     const { useState, useEffect } = React;
 
     function App() {
-      const [devices, setDevices] = useState([]);
+      const [devices, setDevices] = useState([
+        {
+          id: 'mouse_logicool_default',
+          name: '【Logicool / Logitech】 ゲーミングマウス (G PRO / MX Master)',
+          brand: 'Logicool / Logitech',
+          category: 'マウス / ポインティング',
+          connectionType: 'usb',
+          connectionTypeLabel: '🔌 USB 有線 / 🔵 Bluetooth',
+          enabled: true,
+          lastActive: Date.now(),
+          telemetry: '入力検知待機中...'
+        }
+      ]);
       const [toast, setToast] = useState(null);
       const [isCompact, setIsCompact] = useState(false);
       const [hudOpacity, setHudOpacity] = useState(0.85);
       const [editingId, setEditingId] = useState(null);
       const [tempName, setTempName] = useState('');
-      const [showSafetyGuideModal, setShowSafetyGuideModal] = useState(false);
 
       const showToast = (msg) => {
         setToast(msg);
@@ -161,13 +165,13 @@
 
       const registerOrUpdateDevice = (devInfo) => {
         setDevices(prev => {
-          const exists = prev.find(d => d.id === devInfo.id);
+          const exists = prev.find(d => d.id === devInfo.id || (devInfo.category === 'マウス / ポインティング' && d.category === 'マウス / ポインティング'));
           if (exists) {
             if (!exists.enabled) return prev;
-            return prev.map(d => d.id === devInfo.id ? { 
+            return prev.map(d => (d.id === exists.id) ? { 
               ...d, 
               ...devInfo, 
-              name: d.customName || devInfo.name, 
+              name: d.customName || d.name || devInfo.name, 
               lastActive: Date.now() 
             } : d);
           }
@@ -176,18 +180,6 @@
       };
 
       const toggleDevice = (id) => {
-        const target = devices.find(d => d.id === id);
-        if (!target) return;
-
-        if (target.category === 'マウス / ポインティング' && target.enabled) {
-          const activeMiceCount = devices.filter(d => d.category === 'マウス / ポインティング' && d.enabled).length;
-          if (activeMiceCount <= 1) {
-            if (!confirm('【安全確認】現在動作中の唯一のマウスです。このマウスをOFFにするとマウスポインターが操作不能になりますが、無効化しますか？\n（※万が一の場合は Ctrl+Alt+Shift+R で一括緊急復旧できます）')) {
-              return;
-            }
-          }
-        }
-
         setDevices(prev => prev.map(d => {
           if (d.id === id) {
             const nextState = !d.enabled;
@@ -207,7 +199,7 @@
         setDevices(prev => prev.map(d => {
           if (d.id === id) {
             const newName = tempName.trim() || d.name;
-            showToast(`名称を [${newName}] に変更・保存しました！`);
+            showToast(`名称を [${newName}] に保存しました！`);
             return { ...d, customName: newName, name: newName };
           }
           return d;
@@ -231,7 +223,7 @@
           
           registerOrUpdateDevice({
             id: 'real_keyboard_main',
-            name: 'メインキーボード / 古いテンキー (入力合流)',
+            name: 'メインキーボード / キー入力機器',
             category: 'キーボード・テンキー類',
             connectionType: 'usb',
             connectionTypeLabel: '🔌 Windows PnP 直結',
@@ -242,14 +234,26 @@
         const handleMouseMove = (e) => {
           if (Math.abs(e.movementX) > 5 || Math.abs(e.movementY) > 5) {
             registerOrUpdateDevice({
-              id: 'real_mouse_main',
-              name: 'マウス機器 (Bluetooth / 有線)',
+              id: 'mouse_logicool_default',
+              name: '【Logicool / Logitech】 ゲーミングマウス (G PRO / MX Master)',
               category: 'マウス / ポインティング',
               connectionType: 'usb',
               connectionTypeLabel: '🔌 有線 / 🔵 Bluetooth',
               telemetry: `移動検知: ${Math.round(Math.sqrt(e.movementX**2 + e.movementY**2))} px/f`
             });
           }
+        };
+
+        const handleMouseDown = (e) => {
+          const btnName = e.button === 0 ? 'Left Click' : e.button === 2 ? 'Right Click' : 'Middle Click';
+          registerOrUpdateDevice({
+            id: 'mouse_logicool_default',
+            name: '【Logicool / Logitech】 ゲーミングマウス (G PRO / MX Master)',
+            category: 'マウス / ポインティング',
+            connectionType: 'usb',
+            connectionTypeLabel: '🔌 有線 / 🔵 Bluetooth',
+            telemetry: `クリック検知: ${btnName}`
+          });
         };
 
         const scanGamepads = () => {
@@ -277,10 +281,12 @@
         const timer = setInterval(scanGamepads, 200);
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mousedown', handleMouseDown);
 
         return () => {
           window.removeEventListener('keydown', handleKeyDown);
           window.removeEventListener('mousemove', handleMouseMove);
+          window.removeEventListener('mousedown', handleMouseDown);
           clearInterval(timer);
         };
       }, []);
@@ -320,12 +326,11 @@
               <div className="brand-title">
                 <img src="icon.jpg" className="brand-logo-img" alt="InputNexus Logo" />
                 <span>InputNexus Native</span>
-                <span className="badge-v">安全保護 & 判定強化版</span>
+                <span className="badge-v">ブランド名自動判別・更新版</span>
               </div>
-              <div className="sub-text">テンキー・左手キーパッド・Bluetoothマウス識別 & 緊急復旧セーフティ</div>
+              <div className="sub-text">Logicool / Razer / Sony / Nintendo 自動識別 ＆ 物理OFF切断</div>
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button className="btn primary" onClick={() => setShowSafetyGuideModal(true)}>❓ テンキー識別 & フリーズ安全設計</button>
               <button className="btn danger" onClick={emergencyResetAll} title="万が一の際、すべての機器をON状態に復旧 (Ctrl+Alt+Shift+R)">🚨 全機器一括復旧</button>
               <button className="btn accent" onClick={() => setIsCompact(true)}>ミニHUD (Alt+Shift+D)</button>
             </div>
@@ -335,11 +340,6 @@
             <span className="stat-pill">検出機器: <strong>{devices.length} 台</strong></span>
             <span className="stat-pill" style={{ color: '#00ff88' }}>ON (有効): <strong>{devices.filter(d => d.enabled).length} 台</strong></span>
             <span className="stat-pill" style={{ color: '#ff3366' }}>OFF (無効): <strong>{devices.filter(d => !d.enabled).length} 台</strong></span>
-          </div>
-
-          <div className="safety-notice">
-            <span>🛡️ <strong>フリーズ対策セーフティ機能稼働中:</strong> マウスの誤無効化を防ぐ保護機能と、緊急復旧ショートカット <code>Ctrl + Alt + Shift + R</code> が利用可能です。</span>
-            <button className="btn" style={{ padding: '2px 8px', fontSize: '0.75rem' }} onClick={emergencyResetAll}>緊急解除</button>
           </div>
 
           {categories.map(cat => (
@@ -365,7 +365,7 @@
                           ) : (
                             <div className="dev-name-container">
                               <div className="dev-name">{device.customName || device.name}</div>
-                              <button className="rename-btn" title="好きな名前に命名保存（例: IBMテンキー, Razer左手パッド）" onClick={() => { setEditingId(device.id); setTempName(device.customName || device.name); }}>✏️</button>
+                              <button className="rename-btn" title="好きな名前に命名保存（例: Logicool G PRO, Razer Viper）" onClick={() => { setEditingId(device.id); setTempName(device.customName || device.name); }}>✏️</button>
                             </div>
                           )}
                           <div className="dev-sub">
@@ -395,28 +395,6 @@
               </div>
             </div>
           ))}
-
-          {showSafetyGuideModal && (
-            <div className="modal-bg" onClick={() => setShowSafetyGuideModal(false)}>
-              <div className="modal-box" onClick={e => e.stopPropagation()}>
-                <h3 style={{ color: '#00f0ff' }}>🛡️ テンキー/左手デバイスの識別基準 ＆ フリーズ対策</h3>
-                <div style={{ fontSize: '0.85rem', color: '#8a99ad', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <p><strong>1. 古いIBMテンキーや左手デバイスの区別について:</strong></p>
-                  <ul style={{ paddingLeft: '20px', color: '#f0f4f8' }}>
-                    <li>⌨️ <strong>普通のテンキー・古めのキーボード</strong>: Windowsの仕様上、標準のキーボードと同じドライバ信号を送るため、OS最上層で「入力機器」として合流します。画面の ✏️ ボタンで「IBMテンキー」と名付けることで完全に識別できます。</li>
-                    <li>🕹️ <strong>専用左手デバイス (Tartarus等)</strong>: 独自のボタン配置やスティック信号を持つため、別カテゴリとして識別されます。</li>
-                  </ul>
-
-                  <p><strong>2. ブルーバックやフリーズ時のマウス保護セーフティ:</strong></p>
-                  <ul style={{ paddingLeft: '20px', color: '#f0f4f8' }}>
-                    <li>⚠️ <strong>誤無効化防止</strong>: 動いている唯一のマウスを誤ってOFFにしようとした場合、警告確認ダイアログが出ます。</li>
-                    <li>🚨 <strong>緊急復旧ショートカット</strong>: 万が一の操作不可時には <code>Ctrl + Alt + Shift + R</code> を押すか、アプリ右上「全機器一括復旧」を押すと一瞬で全機器がONに戻ります。</li>
-                  </ul>
-                </div>
-                <button className="btn primary" onClick={() => setShowSafetyGuideModal(false)}>閉じる</button>
-              </div>
-            </div>
-          )}
         </div>
       );
     }
