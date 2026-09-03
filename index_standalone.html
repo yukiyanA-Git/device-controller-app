@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>InputNexus - PC入力デバイス統合マネージャー (タスクバー常駐 & ミニHUD ハイブリッド版)</title>
+  <title>InputNexus - PC入力デバイス統合マネージャー (ショートカットカスタマイズ＆キー干渉防止機能付)</title>
   <link rel="icon" type="image/jpeg" href="icon.jpg" />
   
   <!-- React & Babel Standalone CDNs -->
@@ -55,7 +55,6 @@
     .badge-v { background: rgba(0,255,136,0.15); color: var(--accent-green); font-size: 0.72rem; padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(0,255,136,0.3); }
     .sub-text { color: var(--text-muted); font-size: 0.84rem; margin-top: 2px; }
 
-    /* ハイブリッドモード切り替えバー */
     .mode-switcher-bar {
       display: flex; gap: 10px; background: rgba(0,0,0,0.5); padding: 6px; border-radius: 12px; border: 1px solid var(--border-color);
     }
@@ -125,23 +124,35 @@
 
     .telemetry-box { background: rgba(0,0,0,0.4); border-radius: 8px; padding: 8px 10px; border: 1px solid var(--border-color); font-size: 0.78rem; font-family: var(--font-mono); }
     
-    /* 📌 ミニHUDモードオーバーレイ */
     .hud-overlay {
       position: fixed; top: 16px; right: 16px; width: 380px; z-index: 9999;
       background: rgba(10,12,16,0.92); backdrop-filter: blur(16px); border: 1px solid var(--accent-cyan);
       box-shadow: 0 8px 30px rgba(0,0,0,0.8), var(--glow-cyan); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px;
     }
 
-    /* ⚙️ 常駐隠し状態復旧バナー */
     .tray-banner {
       position: fixed; bottom: 20px; right: 20px; z-index: 10000;
       background: rgba(18,22,31,0.95); border: 1px solid var(--accent-purple); box-shadow: 0 8px 25px rgba(0,0,0,0.6);
       padding: 12px 18px; border-radius: 14px; display: flex; align-items: center; gap: 12px;
     }
 
+    .modal-bg {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); z-index: 10000;
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-box {
+      background: #121620; border: 1px solid var(--border-color); border-radius: 18px; padding: 24px; max-width: 540px; width: 100%;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+
     .toast {
       background: rgba(0,240,255,0.15); border: 1px solid var(--accent-cyan); color: #fff;
       padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 0.88rem;
+    }
+
+    .hotkey-setting-box {
+      background: rgba(0,0,0,0.4); border: 1px solid var(--accent-cyan); padding: 14px; border-radius: 10px;
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
     }
   </style>
 </head>
@@ -152,8 +163,12 @@
     const { useState, useEffect } = React;
 
     function App() {
-      // 表示モード: 'full' (フル画面), 'hud' (ミニHUD), 'tray' (タスクバー常駐隠し)
       const [viewMode, setViewMode] = useState('full');
+      // ショートカット設定: デフォルトは Alt+Shift+D (変更可能)
+      const [hudHotkey, setHudHotkey] = useState({ alt: true, shift: true, ctrl: false, key: 'd' });
+      const [enableHotkeys, setEnableHotkeys] = useState(true);
+      const [showSettingsModal, setShowSettingsModal] = useState(false);
+
       const [devices, setDevices] = useState([
         {
           id: 'mouse_logicool_default',
@@ -221,6 +236,15 @@
         setEditingId(null);
       };
 
+      const getHotkeyLabel = () => {
+        const parts = [];
+        if (hudHotkey.ctrl) parts.push('Ctrl');
+        if (hudHotkey.alt) parts.push('Alt');
+        if (hudHotkey.shift) parts.push('Shift');
+        parts.push(hudHotkey.key.toUpperCase());
+        return parts.join(' + ');
+      };
+
       useEffect(() => {
         const handleKeyDown = (e) => {
           // 緊急復旧ホットキー Ctrl + Alt + Shift + R
@@ -230,12 +254,19 @@
             return;
           }
 
-          // ミニHUD 呼び出し / 切替ホットキー Alt + Shift + D
-          if (e.altKey && e.shiftKey && e.key.toLowerCase() === 'd') {
-            e.preventDefault();
-            setViewMode(prev => prev === 'hud' ? 'full' : 'hud');
-            showToast(viewMode === 'hud' ? '🖥️ フル管理画面に切替' : '📌 ミニHUD表示に切替 (Alt+Shift+D)');
-            return;
+          // カスタマイズ可能なミニHUD呼び出しホットキー
+          if (enableHotkeys) {
+            const matchAlt = hudHotkey.alt === e.altKey;
+            const matchShift = hudHotkey.shift === e.shiftKey;
+            const matchCtrl = hudHotkey.ctrl === e.ctrlKey;
+            const matchKey = hudHotkey.key.toLowerCase() === e.key.toLowerCase();
+
+            if (matchAlt && matchShift && matchCtrl && matchKey) {
+              e.preventDefault();
+              setViewMode(prev => prev === 'hud' ? 'full' : 'hud');
+              showToast(viewMode === 'hud' ? '🖥️ フル管理画面に切替' : `📌 ミニHUD表示に切替 (${getHotkeyLabel()})`);
+              return;
+            }
           }
           
           registerOrUpdateDevice({
@@ -306,11 +337,10 @@
           window.removeEventListener('mousedown', handleMouseDown);
           clearInterval(timer);
         };
-      }, [viewMode]);
+      }, [viewMode, hudHotkey, enableHotkeys]);
 
       const categories = Array.from(new Set(devices.map(d => d.category)));
 
-      // モード2: 📌 ミニHUDオーバーレイ
       if (viewMode === 'hud') {
         return (
           <div className="hud-overlay" style={{ opacity: hudOpacity }}>
@@ -320,7 +350,7 @@
                 InputNexus ミニHUD
               </span>
               <button className="btn primary" style={{ padding: '3px 10px', fontSize: '0.75rem' }} onClick={() => setViewMode('full')}>
-                🖥️ フル管理画面に戻る
+                🖥️ フル画面に戻る
               </button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -337,23 +367,21 @@
         );
       }
 
-      // モード3: ⚙️ タスクバー常駐モード (完全隠し状態)
       if (viewMode === 'tray') {
         return (
           <div className="tray-banner">
             <div>
               <div style={{ fontWeight: 700, color: '#e2b6ff', fontSize: '0.9rem' }}>⚙️ InputNexus タスクバー常駐中</div>
-              <div style={{ fontSize: '0.78rem', color: '#8a99ad' }}>画面を邪魔せずバックグラウンドで動作しています</div>
+              <div style={{ fontSize: '0.78rem', color: '#8a99ad' }}>画面を邪魔せずバックグラウンドで動作中</div>
             </div>
             <div style={{ display: 'flex', gap: '6px' }}>
-              <button className="btn primary" style={{ padding: '4px 10px', fontSize: '0.8rem' }} onClick={() => setViewMode('hud')}>📌 ミニHUD表示 (Alt+Shift+D)</button>
+              <button className="btn primary" style={{ padding: '4px 10px', fontSize: '0.8rem' }} onClick={() => setViewMode('hud')}>📌 ミニHUD ({getHotkeyLabel()})</button>
               <button className="btn" style={{ padding: '4px 10px', fontSize: '0.8rem' }} onClick={() => setViewMode('full')}>🖥️ 開く</button>
             </div>
           </div>
         );
       }
 
-      // モード1: 🖥️ フル画面メインビュー
       return (
         <div className="app-container">
           {toast && <div className="toast">🔔 {toast}</div>}
@@ -363,12 +391,11 @@
               <div className="brand-title">
                 <img src="icon.jpg" className="brand-logo-img" alt="InputNexus Logo" />
                 <span>InputNexus Hybrid</span>
-                <span className="badge-v">常駐 ＆ ミニHUD ハイブリッド版</span>
+                <span className="badge-v">キー干渉防止・カスタマイズ対応</span>
               </div>
-              <div className="sub-text">常駐で邪魔にならず、必要な時だけミニHUD（Alt+Shift+D）を即座に呼び出し</div>
+              <div className="sub-text">他アプリと干渉しない自由なショートカットキー設定 ＆ ハイブリッド常駐</div>
             </div>
 
-            {/* ★ 切替が分かりやすいハイブリッド表示切替バー ★ */}
             <div className="mode-switcher-bar">
               <button 
                 className={`mode-btn ${viewMode === 'full' ? 'active' : ''}`}
@@ -378,15 +405,23 @@
               </button>
               <button 
                 className={`mode-btn ${viewMode === 'hud' ? 'active' : ''}`}
-                onClick={() => { setViewMode('hud'); showToast('📌 ミニHUD表示に切替 (Alt+Shift+D で戻る)'); }}
+                onClick={() => { setViewMode('hud'); showToast(`📌 ミニHUD表示 (${getHotkeyLabel()})`); }}
               >
-                📌 ミニHUD (Alt+Shift+D)
+                📌 ミニHUD ({getHotkeyLabel()})
               </button>
               <button 
                 className={`mode-btn tray ${viewMode === 'tray' ? 'active' : ''}`}
-                onClick={() => { setViewMode('tray'); showToast('⚙️ タスクバー常駐モードに移行（画面非表示）'); }}
+                onClick={() => { setViewMode('tray'); showToast('⚙️ タスクバー常駐モード（画面非表示）'); }}
               >
-                ⚙️ タスクバー常駐 (画面非表示)
+                ⚙️ 常駐 (非表示)
+              </button>
+              <button 
+                className="mode-btn"
+                style={{ color: '#00f0ff' }}
+                onClick={() => setShowSettingsModal(true)}
+                title="キー干渉対策・ショートカットキーの自由変更設定"
+              >
+                ⚙️ キー設定
               </button>
             </div>
           </header>
@@ -435,7 +470,7 @@
                         </button>
                       </div>
 
-                      <div style={{ display: 'flex', justify-content: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span className={`badge-status ${device.enabled ? 'active' : 'off'}`}>
                           {device.enabled ? '🟢 ON (操作受付中)' : '🔴 OFF (入力停止中)'}
                         </span>
@@ -451,6 +486,37 @@
               </div>
             </div>
           ))}
+
+          {/* キー設定 ＆ 干渉防止モーダル */}
+          {showSettingsModal && (
+            <div className="modal-bg" onClick={() => setShowSettingsModal(false)}>
+              <div className="modal-box" onClick={e => e.stopPropagation()}>
+                <h3 style={{ color: '#00f0ff' }}>⚙️ ショートカットキー干渉防止 ＆ 設定</h3>
+                <div style={{ fontSize: '0.85rem', color: '#8a99ad', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <p>他のゲームやアプリ（OBS, Discord, Photoshop等）とキーが重なって干渉する場合は、呼び出しキーを自由に変更または無効化できます。</p>
+                  
+                  <div className="hotkey-setting-box">
+                    <div>
+                      <div style={{ fontWeight: 700, color: '#fff' }}>現在のミニHUD呼び出しキー</div>
+                      <div style={{ color: '#00f0ff', fontWeight: 800, fontSize: '1.1rem', marginTop: '4px' }}>{getHotkeyLabel()}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button className="btn" onClick={() => setHudHotkey({ alt: false, shift: false, ctrl: false, key: 'F9' })}>F9キーに変更</button>
+                      <button className="btn" onClick={() => setHudHotkey({ alt: true, shift: true, ctrl: false, key: 'd' })}>Alt+Shift+D (初期値)</button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.3)', padding: '10px 14px', borderRadius: '8px' }}>
+                    <span>ショートカットキー呼び出し機能を有効にする</span>
+                    <button className={`switch-btn ${enableHotkeys ? 'on' : 'off'}`} onClick={() => setEnableHotkeys(!enableHotkeys)}>
+                      {enableHotkeys ? '有効 (ON)' : '無効 (OFF)'}
+                    </button>
+                  </div>
+                </div>
+                <button className="btn primary" onClick={() => setShowSettingsModal(false)}>設定完了</button>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
