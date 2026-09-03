@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>InputNexus - PC入力デバイス統合マネージャー (Logicool/Razerブランド完全自動表示版)</title>
+  <title>InputNexus - PC入力デバイス統合マネージャー (タスクバー常駐 & ミニHUD ハイブリッド版)</title>
   <link rel="icon" type="image/jpeg" href="icon.jpg" />
   
   <!-- React & Babel Standalone CDNs -->
@@ -54,6 +54,18 @@
     .brand-logo-img { width: 44px; height: 44px; border-radius: 10px; box-shadow: var(--glow-cyan); border: 1px solid var(--accent-cyan); object-fit: cover; }
     .badge-v { background: rgba(0,255,136,0.15); color: var(--accent-green); font-size: 0.72rem; padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(0,255,136,0.3); }
     .sub-text { color: var(--text-muted); font-size: 0.84rem; margin-top: 2px; }
+
+    /* ハイブリッドモード切り替えバー */
+    .mode-switcher-bar {
+      display: flex; gap: 10px; background: rgba(0,0,0,0.5); padding: 6px; border-radius: 12px; border: 1px solid var(--border-color);
+    }
+    .mode-btn {
+      padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; border: none;
+      display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; color: var(--text-muted); background: transparent;
+    }
+    .mode-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+    .mode-btn.active { background: linear-gradient(135deg, #00f0ff, #0088ff); color: #000; box-shadow: var(--glow-cyan); }
+    .mode-btn.tray { background: rgba(157, 78, 221, 0.2); color: #e2b6ff; border: 1px solid rgba(157, 78, 221, 0.4); }
     
     .btn {
       background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border-color);
@@ -90,10 +102,8 @@
     .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
     .dev-name-container { display: flex; align-items: center; gap: 6px; }
     .dev-name { font-size: 0.98rem; font-weight: 700; color: #fff; }
-    .brand-tag { background: rgba(0,240,255,0.15); color: #00f0ff; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; border: 1px solid rgba(0,240,255,0.3); }
 
     .rename-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; padding: 2px 4px; }
-
     .dev-sub { color: var(--text-muted); font-size: 0.76rem; margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     
     .conn-badge {
@@ -115,20 +125,23 @@
 
     .telemetry-box { background: rgba(0,0,0,0.4); border-radius: 8px; padding: 8px 10px; border: 1px solid var(--border-color); font-size: 0.78rem; font-family: var(--font-mono); }
     
+    /* 📌 ミニHUDモードオーバーレイ */
     .hud-overlay {
       position: fixed; top: 16px; right: 16px; width: 380px; z-index: 9999;
       background: rgba(10,12,16,0.92); backdrop-filter: blur(16px); border: 1px solid var(--accent-cyan);
       box-shadow: 0 8px 30px rgba(0,0,0,0.8), var(--glow-cyan); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px;
     }
 
+    /* ⚙️ 常駐隠し状態復旧バナー */
+    .tray-banner {
+      position: fixed; bottom: 20px; right: 20px; z-index: 10000;
+      background: rgba(18,22,31,0.95); border: 1px solid var(--accent-purple); box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+      padding: 12px 18px; border-radius: 14px; display: flex; align-items: center; gap: 12px;
+    }
+
     .toast {
       background: rgba(0,240,255,0.15); border: 1px solid var(--accent-cyan); color: #fff;
       padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 0.88rem;
-    }
-
-    .safety-notice {
-      background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3);
-      padding: 10px 14px; border-radius: 10px; font-size: 0.82rem; color: #b3ffda; display: flex; align-items: center; justify-content: space-between; gap: 10px;
     }
   </style>
 </head>
@@ -139,10 +152,12 @@
     const { useState, useEffect } = React;
 
     function App() {
+      // 表示モード: 'full' (フル画面), 'hud' (ミニHUD), 'tray' (タスクバー常駐隠し)
+      const [viewMode, setViewMode] = useState('full');
       const [devices, setDevices] = useState([
         {
           id: 'mouse_logicool_default',
-          name: 'Logicool / Logitech マウス (G PRO / MX Master / LIGHTSPEED)',
+          name: '【Logicool】 ゲーミングマウス (G PRO / MX Master)',
           brand: 'Logicool / Logitech',
           category: 'マウス / ポインティング',
           connectionType: 'usb',
@@ -153,7 +168,6 @@
         }
       ]);
       const [toast, setToast] = useState(null);
-      const [isCompact, setIsCompact] = useState(false);
       const [hudOpacity, setHudOpacity] = useState(0.85);
       const [editingId, setEditingId] = useState(null);
       const [tempName, setTempName] = useState('');
@@ -171,7 +185,6 @@
             return prev.map(d => (d.id === exists.id) ? { 
               ...d, 
               ...devInfo, 
-              // 登録済みのブランド名やカスタム名を絶対に保持
               name: d.customName || d.name || devInfo.name, 
               lastActive: Date.now() 
             } : d);
@@ -210,15 +223,18 @@
 
       useEffect(() => {
         const handleKeyDown = (e) => {
+          // 緊急復旧ホットキー Ctrl + Alt + Shift + R
           if (e.ctrlKey && e.altKey && e.shiftKey && e.key.toLowerCase() === 'r') {
             e.preventDefault();
             emergencyResetAll();
             return;
           }
 
+          // ミニHUD 呼び出し / 切替ホットキー Alt + Shift + D
           if (e.altKey && e.shiftKey && e.key.toLowerCase() === 'd') {
             e.preventDefault();
-            setIsCompact(prev => !prev);
+            setViewMode(prev => prev === 'hud' ? 'full' : 'hud');
+            showToast(viewMode === 'hud' ? '🖥️ フル管理画面に切替' : '📌 ミニHUD表示に切替 (Alt+Shift+D)');
             return;
           }
           
@@ -236,7 +252,7 @@
           if (Math.abs(e.movementX) > 5 || Math.abs(e.movementY) > 5) {
             registerOrUpdateDevice({
               id: 'mouse_logicool_default',
-              name: '【Logicool / Logitech】 ゲーミングマウス (G PRO / MX Master)',
+              name: '【Logicool】 ゲーミングマウス (G PRO / MX Master)',
               category: 'マウス / ポインティング',
               connectionType: 'usb',
               connectionTypeLabel: '🔌 有線 / 🔵 Bluetooth',
@@ -249,7 +265,7 @@
           const btnName = e.button === 0 ? 'Left Click' : e.button === 2 ? 'Right Click' : 'Middle Click';
           registerOrUpdateDevice({
             id: 'mouse_logicool_default',
-            name: '【Logicool / Logitech】 ゲーミングマウス (G PRO / MX Master)',
+            name: '【Logicool】 ゲーミングマウス (G PRO / MX Master)',
             category: 'マウス / ポインティング',
             connectionType: 'usb',
             connectionTypeLabel: '🔌 有線 / 🔵 Bluetooth',
@@ -290,19 +306,22 @@
           window.removeEventListener('mousedown', handleMouseDown);
           clearInterval(timer);
         };
-      }, []);
+      }, [viewMode]);
 
       const categories = Array.from(new Set(devices.map(d => d.category)));
 
-      if (isCompact) {
+      // モード2: 📌 ミニHUDオーバーレイ
+      if (viewMode === 'hud') {
         return (
           <div className="hud-overlay" style={{ opacity: hudOpacity }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: 700, color: '#00f0ff', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <img src="icon.jpg" style={{ width: 18, height: 18, borderRadius: 4 }} />
-                InputNexus HUD
+                InputNexus ミニHUD
               </span>
-              <button className="btn" style={{ padding: '3px 8px', fontSize: '0.75rem' }} onClick={() => setIsCompact(false)}>通常表示に戻す</button>
+              <button className="btn primary" style={{ padding: '3px 10px', fontSize: '0.75rem' }} onClick={() => setViewMode('full')}>
+                🖥️ フル管理画面に戻る
+              </button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {devices.map(d => (
@@ -318,6 +337,23 @@
         );
       }
 
+      // モード3: ⚙️ タスクバー常駐モード (完全隠し状態)
+      if (viewMode === 'tray') {
+        return (
+          <div className="tray-banner">
+            <div>
+              <div style={{ fontWeight: 700, color: '#e2b6ff', fontSize: '0.9rem' }}>⚙️ InputNexus タスクバー常駐中</div>
+              <div style={{ fontSize: '0.78rem', color: '#8a99ad' }}>画面を邪魔せずバックグラウンドで動作しています</div>
+            </div>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button className="btn primary" style={{ padding: '4px 10px', fontSize: '0.8rem' }} onClick={() => setViewMode('hud')}>📌 ミニHUD表示 (Alt+Shift+D)</button>
+              <button className="btn" style={{ padding: '4px 10px', fontSize: '0.8rem' }} onClick={() => setViewMode('full')}>🖥️ 開く</button>
+            </div>
+          </div>
+        );
+      }
+
+      // モード1: 🖥️ フル画面メインビュー
       return (
         <div className="app-container">
           {toast && <div className="toast">🔔 {toast}</div>}
@@ -326,14 +362,32 @@
             <div>
               <div className="brand-title">
                 <img src="icon.jpg" className="brand-logo-img" alt="InputNexus Logo" />
-                <span>InputNexus Native</span>
-                <span className="badge-v">ブランド名自動判別・更新版</span>
+                <span>InputNexus Hybrid</span>
+                <span className="badge-v">常駐 ＆ ミニHUD ハイブリッド版</span>
               </div>
-              <div className="sub-text">Logicool / Razer / Sony / Nintendo 自動識別 ＆ 物理OFF切断</div>
+              <div className="sub-text">常駐で邪魔にならず、必要な時だけミニHUD（Alt+Shift+D）を即座に呼び出し</div>
             </div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button className="btn danger" onClick={emergencyResetAll} title="万が一の際、すべての機器をON状態に復旧 (Ctrl+Alt+Shift+R)">🚨 全機器一括復旧</button>
-              <button className="btn accent" onClick={() => setIsCompact(true)}>ミニHUD (Alt+Shift+D)</button>
+
+            {/* ★ 切替が分かりやすいハイブリッド表示切替バー ★ */}
+            <div className="mode-switcher-bar">
+              <button 
+                className={`mode-btn ${viewMode === 'full' ? 'active' : ''}`}
+                onClick={() => setViewMode('full')}
+              >
+                🖥️ フル管理画面
+              </button>
+              <button 
+                className={`mode-btn ${viewMode === 'hud' ? 'active' : ''}`}
+                onClick={() => { setViewMode('hud'); showToast('📌 ミニHUD表示に切替 (Alt+Shift+D で戻る)'); }}
+              >
+                📌 ミニHUD (Alt+Shift+D)
+              </button>
+              <button 
+                className={`mode-btn tray ${viewMode === 'tray' ? 'active' : ''}`}
+                onClick={() => { setViewMode('tray'); showToast('⚙️ タスクバー常駐モードに移行（画面非表示）'); }}
+              >
+                ⚙️ タスクバー常駐 (画面非表示)
+              </button>
             </div>
           </header>
 
@@ -341,6 +395,7 @@
             <span className="stat-pill">検出機器: <strong>{devices.length} 台</strong></span>
             <span className="stat-pill" style={{ color: '#00ff88' }}>ON (有効): <strong>{devices.filter(d => d.enabled).length} 台</strong></span>
             <span className="stat-pill" style={{ color: '#ff3366' }}>OFF (無効): <strong>{devices.filter(d => !d.enabled).length} 台</strong></span>
+            <button className="btn danger" style={{ padding: '4px 10px', fontSize: '0.78rem' }} onClick={emergencyResetAll} title="Ctrl+Alt+Shift+R">🚨 全機器一括復旧</button>
           </div>
 
           {categories.map(cat => (
@@ -366,7 +421,7 @@
                           ) : (
                             <div className="dev-name-container">
                               <div className="dev-name">{device.customName || device.name}</div>
-                              <button className="rename-btn" title="好きな名前に命名保存（例: Logicool G PRO, Razer Viper）" onClick={() => { setEditingId(device.id); setTempName(device.customName || device.name); }}>✏️</button>
+                              <button className="rename-btn" title="好きな名前に命名保存" onClick={() => { setEditingId(device.id); setTempName(device.customName || device.name); }}>✏️</button>
                             </div>
                           )}
                           <div className="dev-sub">
@@ -380,7 +435,7 @@
                         </button>
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', justify-content: 'space-between', alignItems: 'center' }}>
                         <span className={`badge-status ${device.enabled ? 'active' : 'off'}`}>
                           {device.enabled ? '🟢 ON (操作受付中)' : '🔴 OFF (入力停止中)'}
                         </span>
