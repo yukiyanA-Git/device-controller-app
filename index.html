@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>InputNexus - PC入力デバイス統合マネージャー (ショートカットカスタマイズ＆キー干渉防止機能付)</title>
+  <title>InputNexus - PC入力デバイス統合マネージャー (サイバーシルエット＆SF効果音搭載)</title>
   <link rel="icon" type="image/jpeg" href="icon.jpg" />
   
   <!-- React & Babel Standalone CDNs -->
@@ -19,8 +19,8 @@
   <style>
     :root {
       --bg-primary: #0a0c10;
-      --bg-card: rgba(18, 22, 31, 0.85);
-      --bg-glass: rgba(15, 20, 30, 0.75);
+      --bg-card: rgba(18, 22, 31, 0.88);
+      --bg-glass: rgba(15, 20, 30, 0.78);
       --border-color: rgba(255, 255, 255, 0.1);
       --text-main: #f0f4f8;
       --text-muted: #8a99ad;
@@ -29,7 +29,8 @@
       --accent-yellow: #ffb800;
       --accent-purple: #9d4edd;
       --accent-red: #ff3366;
-      --glow-cyan: 0 0 15px rgba(0, 240, 255, 0.35);
+      --glow-cyan: 0 0 16px rgba(0, 240, 255, 0.4);
+      --glow-green: 0 0 16px rgba(0, 255, 136, 0.4);
       --font-main: 'Inter', system-ui, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
     }
@@ -41,12 +42,13 @@
       font-family: var(--font-main);
       min-height: 100vh;
       padding: 20px;
-      background-image: radial-gradient(circle at 15% 15%, rgba(0, 240, 255, 0.05) 0%, transparent 40%);
+      background-image: radial-gradient(circle at 15% 15%, rgba(0, 240, 255, 0.05) 0%, transparent 40%),
+                        radial-gradient(circle at 85% 80%, rgba(157, 78, 221, 0.05) 0%, transparent 40%);
     }
 
     .app-container { max-width: 1300px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
     .app-header {
-      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;
       padding: 16px 24px; background: var(--bg-glass); backdrop-filter: blur(16px);
       border: 1px solid var(--border-color); border-radius: 16px;
     }
@@ -55,16 +57,25 @@
     .badge-v { background: rgba(0,255,136,0.15); color: var(--accent-green); font-size: 0.72rem; padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(0,255,136,0.3); }
     .sub-text { color: var(--text-muted); font-size: 0.84rem; margin-top: 2px; }
 
+    .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
     .mode-switcher-bar {
-      display: flex; gap: 10px; background: rgba(0,0,0,0.5); padding: 6px; border-radius: 12px; border: 1px solid var(--border-color);
+      display: flex; gap: 8px; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 12px; border: 1px solid var(--border-color);
     }
     .mode-btn {
-      padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; border: none;
+      padding: 8px 14px; border-radius: 8px; font-weight: 700; font-size: 0.83rem; cursor: pointer; border: none;
       display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; color: var(--text-muted); background: transparent;
     }
     .mode-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
     .mode-btn.active { background: linear-gradient(135deg, #00f0ff, #0088ff); color: #000; box-shadow: var(--glow-cyan); }
     .mode-btn.tray { background: rgba(157, 78, 221, 0.2); color: #e2b6ff; border: 1px solid rgba(157, 78, 221, 0.4); }
+
+    .sound-toggle-btn {
+      padding: 8px 14px; border-radius: 10px; font-weight: 700; font-size: 0.83rem; cursor: pointer; border: 1px solid var(--border-color);
+      display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; background: rgba(255,255,255,0.05); color: var(--text-main);
+    }
+    .sound-toggle-btn.sound-on { color: var(--accent-cyan); border-color: rgba(0,240,255,0.4); background: rgba(0,240,255,0.1); }
+    .sound-toggle-btn.sound-off { color: var(--text-muted); opacity: 0.7; }
     
     .btn {
       background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border-color);
@@ -85,22 +96,40 @@
     .category-section { display: flex; flex-direction: column; gap: 12px; }
     .cat-title { font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 8px; color: var(--accent-cyan); border-bottom: 1px solid var(--border-color); padding-bottom: 6px; }
 
-    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 16px; }
     .card {
       background: var(--bg-card); border: 1px solid var(--border-color);
-      border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px;
-      transition: all 0.2s ease; position: relative;
+      border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px;
+      transition: all 0.25s ease; position: relative;
     }
     .card.active-glow {
       border-color: var(--accent-cyan);
       box-shadow: var(--glow-cyan);
       animation: pulse-anim 1.0s infinite alternate;
     }
-    @keyframes pulse-anim { 0% { box-shadow: 0 0 8px rgba(0, 240, 255, 0.2); } 100% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.7); } }
+    @keyframes pulse-anim { 0% { box-shadow: 0 0 8px rgba(0, 240, 255, 0.2); } 100% { box-shadow: 0 0 22px rgba(0, 240, 255, 0.65); } }
     
-    .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .card-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    
+    .silhouette-badge {
+      width: 52px; height: 52px; border-radius: 12px;
+      background: rgba(0,0,0,0.5); border: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: all 0.3s;
+    }
+    .silhouette-badge.active {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.35);
+      background: rgba(0, 240, 255, 0.08);
+    }
+    .silhouette-badge.disabled {
+      border-color: rgba(255, 51, 102, 0.4);
+      background: rgba(255, 51, 102, 0.05);
+      opacity: 0.6;
+    }
+
     .dev-name-container { display: flex; align-items: center; gap: 6px; }
-    .dev-name { font-size: 0.98rem; font-weight: 700; color: #fff; }
+    .dev-name { font-size: 0.95rem; font-weight: 700; color: #fff; word-break: break-word; }
 
     .rename-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; padding: 2px 4px; }
     .dev-sub { color: var(--text-muted); font-size: 0.76rem; margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -117,13 +146,28 @@
     .badge-status.off { background: rgba(255,51,102,0.15); color: var(--accent-red); border: 1px solid rgba(255,51,102,0.3); }
 
     .switch-btn {
-      padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 0.8rem; cursor: pointer; border: none;
+      padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 0.82rem; cursor: pointer; border: none;
+      transition: all 0.2s; letter-spacing: 0.5px;
     }
     .switch-btn.on { background: rgba(0,255,136,0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+    .switch-btn.on:hover { background: rgba(0,255,136,0.35); transform: scale(1.04); }
     .switch-btn.off { background: rgba(255,51,102,0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
+    .switch-btn.off:hover { background: rgba(255,51,102,0.35); transform: scale(1.04); }
 
     .telemetry-box { background: rgba(0,0,0,0.4); border-radius: 8px; padding: 8px 10px; border: 1px solid var(--border-color); font-size: 0.78rem; font-family: var(--font-mono); }
     
+    .recommend-box {
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(0, 240, 255, 0.04); border: 1px dashed rgba(0, 240, 255, 0.25);
+      border-radius: 8px; padding: 6px 10px; font-size: 0.75rem;
+    }
+    .recommend-label { color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+    .recommend-link {
+      color: var(--accent-cyan); text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;
+      transition: color 0.2s;
+    }
+    .recommend-link:hover { color: #fff; text-decoration: underline; }
+
     .hud-overlay {
       position: fixed; top: 16px; right: 16px; width: 380px; z-index: 9999;
       background: rgba(10,12,16,0.92); backdrop-filter: blur(16px); border: 1px solid var(--accent-cyan);
@@ -160,13 +204,210 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
+
+    const CyberSound = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      },
+      playToggleOn(enabled) {
+        if (!enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.12);
+      },
+      playToggleOff(enabled) {
+        if (!enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(220, now + 0.09);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.11);
+      },
+      playClick(enabled) {
+        if (!enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1046, now);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.04);
+      },
+      playEmergency(enabled) {
+        if (!enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + i * 0.05);
+          gain.gain.setValueAtTime(0.1, now + i * 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.15);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.05);
+          osc.stop(now + i * 0.05 + 0.15);
+        });
+      }
+    };
+
+    function DeviceSilhouette({ dev, enabled, isRecent }) {
+      const color = !enabled 
+        ? '#ff3366' 
+        : isRecent 
+          ? '#00f0ff' 
+          : '#8a99ad';
+
+      const name = (dev.customName || dev.name || '').toLowerCase();
+      const cat = (dev.category || '').toLowerCase();
+
+      // 1. Razer Tartarus / 左手デバイス
+      if (name.includes('tartarus') || name.includes('orbweaver') || name.includes('左手') || cat.includes('左手')) {
+        return (
+          <svg width="34" height="34" viewBox="0 0 100 100" fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="20" y="15" width="45" height="42" rx="6" />
+            <line x1="35" y1="15" x2="35" y2="57" />
+            <line x1="50" y1="15" x2="50" y2="57" />
+            <line x1="20" y1="29" x2="65" y2="29" />
+            <line x1="20" y1="43" x2="65" y2="43" />
+            <circle cx="78" cy="50" r="10" />
+            <circle cx="78" cy="50" r="3" fill={color} />
+            <path d="M22 66 C22 66, 28 85, 45 88 C62 88, 68 85, 68 66" />
+          </svg>
+        );
+      }
+
+      // 2. マウス / ポインティング機器
+      if (cat.includes('マウス') || name.includes('mouse') || name.includes('マウス')) {
+        return (
+          <svg width="34" height="34" viewBox="0 0 100 100" fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M50 15 C32 15, 26 30, 26 55 C26 78, 35 88, 50 88 C65 88, 74 78, 74 55 C74 30, 68 15, 50 15 Z" />
+            <line x1="50" y1="15" x2="50" y2="46" />
+            <rect x="46" y="26" width="8" height="15" rx="4" fill={isRecent && enabled ? color : 'none'} />
+            <line x1="26" y1="45" x2="26" y2="58" strokeWidth="9" />
+          </svg>
+        );
+      }
+
+      // 3. ゲームコントローラー
+      if (cat.includes('コントローラー') || name.includes('gamepad') || name.includes('controller') || name.includes('dual')) {
+        return (
+          <svg width="34" height="34" viewBox="0 0 100 100" fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M25 35 C18 42, 14 68, 22 84 C26 90, 34 88, 38 76 L44 60 L56 60 L62 76 C66 88, 74 90, 78 84 C86 68, 82 42, 75 35 C68 28, 32 28, 25 35 Z" />
+            <line x1="32" y1="44" x2="32" y2="56" strokeWidth="5" />
+            <line x1="26" y1="50" x2="38" y2="50" strokeWidth="5" />
+            <circle cx="42" cy="58" r="6" />
+            <circle cx="58" cy="58" r="6" />
+            <circle cx="68" cy="46" r="2.5" fill={color} />
+            <circle cx="74" cy="50" r="2.5" fill={color} />
+            <circle cx="68" cy="54" r="2.5" fill={color} />
+            <circle cx="62" cy="50" r="2.5" fill={color} />
+          </svg>
+        );
+      }
+
+      // 4. テンキー / キーボード
+      if (name.includes('テンキー') || name.includes('numpad')) {
+        return (
+          <svg width="34" height="34" viewBox="0 0 100 100" fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="28" y="16" width="44" height="68" rx="8" />
+            <line x1="28" y1="36" x2="72" y2="36" />
+            <line x1="28" y1="52" x2="72" y2="52" />
+            <line x1="28" y1="68" x2="72" y2="68" />
+            <line x1="43" y1="36" x2="43" y2="84" />
+            <line x1="57" y1="36" x2="57" y2="84" />
+          </svg>
+        );
+      }
+
+      return (
+        <svg width="34" height="34" viewBox="0 0 100 100" fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="15" y="28" width="70" height="44" rx="8" />
+          <line x1="15" y1="42" x2="85" y2="42" />
+          <line x1="15" y1="56" x2="85" y2="56" />
+          <line x1="32" y1="28" x2="32" y2="72" />
+          <line x1="50" y1="28" x2="50" y2="72" />
+          <line x1="68" y1="28" x2="68" y2="72" />
+        </svg>
+      );
+    }
+
+    function getSmartRecommendation(dev) {
+      const name = (dev.customName || dev.name || '').toLowerCase();
+      const cat = (dev.category || '').toLowerCase();
+
+      if (name.includes('tartarus') || name.includes('orbweaver') || name.includes('左手') || cat.includes('左手')) {
+        return {
+          text: 'Razer Tartarus対応 交換パームレスト / 静音化',
+          query: 'Razer Tartarus リストレスト 交換'
+        };
+      }
+      if (name.includes('logicool') || name.includes('logitech')) {
+        return {
+          text: 'Logicool G 純正ソール / 充電ドック対応',
+          query: 'Logicool G マウスソール 充電ドック'
+        };
+      }
+      if (cat.includes('マウス')) {
+        return {
+          text: 'ゲーミングマウス用 超低摩擦ガラスソール',
+          query: 'ゲーミングマウス ソール 超低摩擦'
+        };
+      }
+      if (cat.includes('コントローラー')) {
+        return {
+          text: 'エイム向上 スティッククッション / アシストキャップ',
+          query: 'FPS エイム アシストキャップ'
+        };
+      }
+      return {
+        text: '高耐久メカニカル用 静音リング / リストレスト',
+        query: 'キーボード リストレスト 静音リング'
+      };
+    }
 
     function App() {
       const [viewMode, setViewMode] = useState('full');
       const [hudHotkey, setHudHotkey] = useState({ alt: true, shift: true, ctrl: false, key: 'd' });
       const [enableHotkeys, setEnableHotkeys] = useState(true);
       const [showSettingsModal, setShowSettingsModal] = useState(false);
+      const [soundEnabled, setSoundEnabled] = useState(true);
 
       const [devices, setDevices] = useState([
         {
@@ -191,6 +432,13 @@
         setTimeout(() => setToast(null), 3500);
       };
 
+      const toggleSound = () => {
+        const next = !soundEnabled;
+        setSoundEnabled(next);
+        if (next) CyberSound.playToggleOn(true);
+        showToast(next ? '🔊 SF効果音を ON にしました' : '🔇 効果音を OFF（消音）にしました');
+      };
+
       const registerOrUpdateDevice = (devInfo) => {
         setDevices(prev => {
           const exists = prev.find(d => d.id === devInfo.id || (devInfo.category === 'マウス / ポインティング' && d.category === 'マウス / ポインティング'));
@@ -203,6 +451,7 @@
               lastActive: Date.now() 
             } : d);
           }
+          CyberSound.playClick(soundEnabled);
           return [...prev, { ...devInfo, customName: null, enabled: true, lastActive: Date.now() }];
         });
       };
@@ -211,6 +460,11 @@
         setDevices(prev => prev.map(d => {
           if (d.id === id) {
             const nextState = !d.enabled;
+            if (nextState) {
+              CyberSound.playToggleOn(soundEnabled);
+            } else {
+              CyberSound.playToggleOff(soundEnabled);
+            }
             showToast(`[${d.customName || d.name}] の入力を ${nextState ? '有効化 (ON)' : '停止 (OFF)'} にしました。`);
             return { ...d, enabled: nextState };
           }
@@ -219,11 +473,13 @@
       };
 
       const emergencyResetAll = () => {
+        CyberSound.playEmergency(soundEnabled);
         setDevices(prev => prev.map(d => ({ ...d, enabled: true })));
         showToast('【全機器復旧】すべてのデバイスの無効化を解除し、ON状態に一括リセットしました！');
       };
 
       const saveCustomName = (id) => {
+        CyberSound.playClick(soundEnabled);
         setDevices(prev => prev.map(d => {
           if (d.id === id) {
             const newName = tempName.trim() || d.name;
@@ -260,6 +516,7 @@
 
             if (matchAlt && matchShift && matchCtrl && matchKey) {
               e.preventDefault();
+              CyberSound.playClick(soundEnabled);
               setViewMode(prev => prev === 'hud' ? 'full' : 'hud');
               showToast(viewMode === 'hud' ? '🖥️ フル管理画面に切替' : `📌 ミニHUD表示に切替 (${getHotkeyLabel()})`);
               return;
@@ -334,7 +591,7 @@
           window.removeEventListener('mousedown', handleMouseDown);
           clearInterval(timer);
         };
-      }, [viewMode, hudHotkey, enableHotkeys]);
+      }, [viewMode, hudHotkey, enableHotkeys, soundEnabled]);
 
       const categories = Array.from(new Set(devices.map(d => d.category)));
 
@@ -346,14 +603,15 @@
                 <img src="icon.jpg" style={{ width: 18, height: 18, borderRadius: 4 }} />
                 InputNexus ミニHUD
               </span>
-              <button className="btn primary" style={{ padding: '3px 10px', fontSize: '0.75rem' }} onClick={() => setViewMode('full')}>
+              <button className="btn primary" style={{ padding: '3px 10px', fontSize: '0.75rem' }} onClick={() => { CyberSound.playClick(soundEnabled); setViewMode('full'); }}>
                 🖥️ フル画面に戻る
               </button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {devices.map(d => (
                 <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '8px' }}>
-                  <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <DeviceSilhouette dev={d} enabled={d.enabled} isRecent={false} />
                     <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{d.customName || d.name}</span>
                   </div>
                   <button className={`switch-btn ${d.enabled ? 'on' : 'off'}`} onClick={() => toggleDevice(d.id)}>{d.enabled ? 'ON' : 'OFF'}</button>
@@ -372,8 +630,8 @@
               <div style={{ fontSize: '0.78rem', color: '#8a99ad' }}>画面を邪魔せずバックグラウンドで動作中</div>
             </div>
             <div style={{ display: 'flex', gap: '6px' }}>
-              <button className="btn primary" style={{ padding: '4px 10px', fontSize: '0.8rem' }} onClick={() => setViewMode('hud')}>📌 ミニHUD ({getHotkeyLabel()})</button>
-              <button className="btn" style={{ padding: '4px 10px', fontSize: '0.8rem' }} onClick={() => setViewMode('full')}>🖥️ 開く</button>
+              <button className="btn primary" style={{ padding: '4px 10px', fontSize: '0.8rem' }} onClick={() => { CyberSound.playClick(soundEnabled); setViewMode('hud'); }}>📌 ミニHUD ({getHotkeyLabel()})</button>
+              <button className="btn" style={{ padding: '4px 10px', fontSize: '0.8rem' }} onClick={() => { CyberSound.playClick(soundEnabled); setViewMode('full'); }}>🖥️ 開く</button>
             </div>
           </div>
         );
@@ -387,39 +645,49 @@
             <div>
               <div className="brand-title">
                 <img src="icon.jpg" className="brand-logo-img" alt="InputNexus Logo" />
-                <span>InputNexus Hybrid</span>
-                <span className="badge-v">キー干渉防止・カスタマイズ対応</span>
+                <span>InputNexus Prime</span>
+                <span className="badge-v">シルエット・SF音響搭載</span>
               </div>
-              <div className="sub-text">他アプリと干渉しない自由なショートカットキー設定 ＆ ハイブリッド常駐</div>
+              <div className="sub-text">サイバーパンクUI ＆ Windows物理無効化・ハイブリッド入力マネージャー</div>
             </div>
 
-            <div className="mode-switcher-bar">
+            <div className="header-actions">
               <button 
-                className={`mode-btn ${viewMode === 'full' ? 'active' : ''}`}
-                onClick={() => setViewMode('full')}
+                className={`sound-toggle-btn ${soundEnabled ? 'sound-on' : 'sound-off'}`}
+                onClick={toggleSound}
+                title="SF効果音の有効/消音切り替え"
               >
-                🖥️ フル管理画面
+                {soundEnabled ? '🔊 効果音: ON' : '🔇 効果音: OFF'}
               </button>
-              <button 
-                className={`mode-btn ${viewMode === 'hud' ? 'active' : ''}`}
-                onClick={() => { setViewMode('hud'); showToast(`📌 ミニHUD表示 (${getHotkeyLabel()})`); }}
-              >
-                📌 ミニHUD ({getHotkeyLabel()})
-              </button>
-              <button 
-                className={`mode-btn tray ${viewMode === 'tray' ? 'active' : ''}`}
-                onClick={() => { setViewMode('tray'); showToast('⚙️ タスクバー常駐モード（画面非表示）'); }}
-              >
-                ⚙️ 常駐 (非表示)
-              </button>
-              <button 
-                className="mode-btn"
-                style={{ color: '#00f0ff' }}
-                onClick={() => setShowSettingsModal(true)}
-                title="キー干渉対策・ショートカットキーの自由変更設定"
-              >
-                ⚙️ キー設定
-              </button>
+
+              <div className="mode-switcher-bar">
+                <button 
+                  className={`mode-btn ${viewMode === 'full' ? 'active' : ''}`}
+                  onClick={() => { CyberSound.playClick(soundEnabled); setViewMode('full'); }}
+                >
+                  🖥️ フル画面
+                </button>
+                <button 
+                  className={`mode-btn ${viewMode === 'hud' ? 'active' : ''}`}
+                  onClick={() => { CyberSound.playClick(soundEnabled); setViewMode('hud'); showToast(`📌 ミニHUD表示 (${getHotkeyLabel()})`); }}
+                >
+                  📌 HUD ({getHotkeyLabel()})
+                </button>
+                <button 
+                  className={`mode-btn tray ${viewMode === 'tray' ? 'active' : ''}`}
+                  onClick={() => { CyberSound.playClick(soundEnabled); setViewMode('tray'); showToast('⚙️ タスクバー常駐モード（画面非表示）'); }}
+                >
+                  ⚙️ 常駐
+                </button>
+                <button 
+                  className="mode-btn"
+                  style={{ color: '#00f0ff' }}
+                  onClick={() => { CyberSound.playClick(soundEnabled); setShowSettingsModal(true); }}
+                  title="キー干渉対策・ショートカットキーの自由変更設定"
+                >
+                  ⚙️ キー設定
+                </button>
+              </div>
             </div>
           </header>
 
@@ -436,32 +704,40 @@
               <div className="cards-grid">
                 {devices.filter(d => d.category === cat).map(device => {
                   const isRecent = device.enabled && (Date.now() - device.lastActive < 1800);
+                  const recommend = getSmartRecommendation(device);
                   return (
                     <div key={device.id} className={`card ${isRecent ? 'active-glow' : ''}`}>
                       <div className="card-top">
-                        <div>
-                          {editingId === device.id ? (
-                            <div style={{ display: 'flex', gap: '4px' }}>
-                              <input 
-                                type="text" 
-                                style={{ background: '#000', border: '1px solid #00f0ff', color: '#fff', padding: '2px 6px', borderRadius: '4px' }}
-                                value={tempName}
-                                onChange={e => setTempName(e.target.value)}
-                              />
-                              <button className="btn primary" style={{ padding: '2px 6px', fontSize: '0.7rem' }} onClick={() => saveCustomName(device.id)}>保存</button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div className={`silhouette-badge ${isRecent ? 'active' : ''} ${!device.enabled ? 'disabled' : ''}`}>
+                            <DeviceSilhouette dev={device} enabled={device.enabled} isRecent={isRecent} />
+                          </div>
+
+                          <div>
+                            {editingId === device.id ? (
+                              <div style={{ display: 'flex', gap: '4px' }}>
+                                <input 
+                                  type="text" 
+                                  style={{ background: '#000', border: '1px solid #00f0ff', color: '#fff', padding: '2px 6px', borderRadius: '4px' }}
+                                  value={tempName}
+                                  onChange={e => setTempName(e.target.value)}
+                                />
+                                <button className="btn primary" style={{ padding: '2px 6px', fontSize: '0.7rem' }} onClick={() => saveCustomName(device.id)}>保存</button>
+                              </div>
+                            ) : (
+                              <div className="dev-name-container">
+                                <div className="dev-name">{device.customName || device.name}</div>
+                                <button className="rename-btn" title="好きな名前に命名保存" onClick={() => { setEditingId(device.id); setTempName(device.customName || device.name); }}>✏️</button>
+                              </div>
+                            )}
+                            <div className="dev-sub">
+                              <span className={`conn-badge ${device.connectionType}`}>
+                                {device.connectionTypeLabel}
+                              </span>
                             </div>
-                          ) : (
-                            <div className="dev-name-container">
-                              <div className="dev-name">{device.customName || device.name}</div>
-                              <button className="rename-btn" title="好きな名前に命名保存" onClick={() => { setEditingId(device.id); setTempName(device.customName || device.name); }}>✏️</button>
-                            </div>
-                          )}
-                          <div className="dev-sub">
-                            <span className={`conn-badge ${device.connectionType}`}>
-                              {device.connectionTypeLabel}
-                            </span>
                           </div>
                         </div>
+
                         <button className={`switch-btn ${device.enabled ? 'on' : 'off'}`} onClick={() => toggleDevice(device.id)}>
                           {device.enabled ? 'ON' : 'OFF'}
                         </button>
@@ -471,11 +747,27 @@
                         <span className={`badge-status ${device.enabled ? 'active' : 'off'}`}>
                           {device.enabled ? '🟢 ON (操作受付中)' : '🔴 OFF (入力停止中)'}
                         </span>
-                        {isRecent && <span style={{ color: '#00f0ff', fontWeight: 700, fontSize: '0.78rem' }}>⚡ 入力検知中！</span>}
+                        {isRecent && <span style={{ color: '#00f0ff', fontWeight: 700, fontSize: '0.78rem' }}>⚡ リアルタイム通信中</span>}
                       </div>
 
                       <div className="telemetry-box">
-                        {device.enabled ? device.telemetry : '🛑 入力は安全に停止されています'}
+                        {device.enabled ? device.telemetry : '🛑 入力は物理レベルで安全に停止されています'}
+                      </div>
+
+                      <div className="recommend-box">
+                        <span className="recommend-label">
+                          <span>🛒</span>
+                          <span>{recommend.text}</span>
+                        </span>
+                        <a 
+                          href={`https://www.amazon.co.jp/s?k=${encodeURIComponent(recommend.query)}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="recommend-link"
+                          onClick={() => CyberSound.playClick(soundEnabled)}
+                        >
+                          詳細 ↗
+                        </a>
                       </div>
                     </div>
                   );
@@ -497,19 +789,19 @@
                       <div style={{ color: '#00f0ff', fontWeight: 800, fontSize: '1.1rem', marginTop: '4px' }}>{getHotkeyLabel()}</div>
                     </div>
                     <div style={{ display: 'flex', gap: '6px' }}>
-                      <button className="btn" onClick={() => setHudHotkey({ alt: false, shift: false, ctrl: false, key: 'F9' })}>F9キーに変更</button>
-                      <button className="btn" onClick={() => setHudHotkey({ alt: true, shift: true, ctrl: false, key: 'd' })}>Alt+Shift+D (初期値)</button>
+                      <button className="btn" onClick={() => { CyberSound.playClick(soundEnabled); setHudHotkey({ alt: false, shift: false, ctrl: false, key: 'F9' }); }}>F9キーに変更</button>
+                      <button className="btn" onClick={() => { CyberSound.playClick(soundEnabled); setHudHotkey({ alt: true, shift: true, ctrl: false, key: 'd' }); }}>Alt+Shift+D (初期値)</button>
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.3)', padding: '10px 14px', borderRadius: '8px' }}>
                     <span>ショートカットキー呼び出し機能を有効にする</span>
-                    <button className={`switch-btn ${enableHotkeys ? 'on' : 'off'}`} onClick={() => setEnableHotkeys(!enableHotkeys)}>
+                    <button className={`switch-btn ${enableHotkeys ? 'on' : 'off'}`} onClick={() => { CyberSound.playClick(soundEnabled); setEnableHotkeys(!enableHotkeys); }}>
                       {enableHotkeys ? '有効 (ON)' : '無効 (OFF)'}
                     </button>
                   </div>
                 </div>
-                <button className="btn primary" onClick={() => setShowSettingsModal(false)}>設定完了</button>
+                <button className="btn primary" onClick={() => { CyberSound.playClick(soundEnabled); setShowSettingsModal(false); }}>設定完了</button>
               </div>
             </div>
           )}
