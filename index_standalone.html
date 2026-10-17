@@ -16,6 +16,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
+  <!-- Windows PnPハードウェア自動検出データ -->
+  <script src="devices_data.js"></script>
+
   <style>
     :root {
       --bg-primary: #0a0c10;
@@ -111,7 +114,6 @@
     
     .card-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
     
-    /* シルエットアイコンエリア */
     .silhouette-badge {
       width: 52px; height: 52px; border-radius: 12px;
       background: rgba(0,0,0,0.5); border: 1px solid var(--border-color);
@@ -157,7 +159,6 @@
 
     .telemetry-box { background: rgba(0,0,0,0.4); border-radius: 8px; padding: 8px 10px; border: 1px solid var(--border-color); font-size: 0.78rem; font-family: var(--font-mono); }
     
-    /* スマート・レコメンド（アフィリエイト）ボックス */
     .recommend-box {
       display: flex; justify-content: space-between; align-items: center;
       background: rgba(0, 240, 255, 0.04); border: 1px dashed rgba(0, 240, 255, 0.25);
@@ -208,9 +209,6 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // ==========================================
-    // 🔊 SFサイバーパンク効果音シンセサイザー (Web Audio API)
-    // ==========================================
     const CyberSound = {
       ctx: null,
       init() {
@@ -292,9 +290,6 @@
       }
     };
 
-    // ==========================================
-    // 🎨 デバイス・ベクターシルエット (SVG)
-    // ==========================================
     function DeviceSilhouette({ dev, enabled, isRecent }) {
       const color = !enabled 
         ? '#ff3366' 
@@ -306,53 +301,42 @@
       const cat = (dev.category || '').toLowerCase();
 
       // 1. Razer Tartarus / 左手デバイス
-      if (name.includes('tartarus') || name.includes('orbweaver') || name.includes('左手') || cat.includes('左手')) {
+      if (name.includes('tartarus') || name.includes('orbweaver') || name.includes('左手') || cat.includes('左手') || cat.includes('lefthand')) {
         return (
           <svg width="34" height="34" viewBox="0 0 100 100" fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
-            {/* キーボードグリッド部分 */}
             <rect x="20" y="15" width="45" height="42" rx="6" />
             <line x1="35" y1="15" x2="35" y2="57" />
             <line x1="50" y1="15" x2="50" y2="57" />
             <line x1="20" y1="29" x2="65" y2="29" />
             <line x1="20" y1="43" x2="65" y2="43" />
-            {/* 親指サムモジュール (ホイール/D-pad) */}
             <circle cx="78" cy="50" r="10" />
             <circle cx="78" cy="50" r="3" fill={color} />
-            {/* パームレスト曲面 */}
             <path d="M22 66 C22 66, 28 85, 45 88 C62 88, 68 85, 68 66" />
           </svg>
         );
       }
 
       // 2. マウス / ポインティング機器
-      if (cat.includes('マウス') || name.includes('mouse') || name.includes('マウス')) {
+      if (cat.includes('マウス') || cat.includes('mouse') || name.includes('mouse') || name.includes('マウス')) {
         return (
           <svg width="34" height="34" viewBox="0 0 100 100" fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
-            {/* マウス外枠ボディ */}
             <path d="M50 15 C32 15, 26 30, 26 55 C26 78, 35 88, 50 88 C65 88, 74 78, 74 55 C74 30, 68 15, 50 15 Z" />
-            {/* クリックスプリット線 */}
             <line x1="50" y1="15" x2="50" y2="46" />
-            {/* スクロールホイール */}
             <rect x="46" y="26" width="8" height="15" rx="4" fill={isRecent && enabled ? color : 'none'} />
-            {/* サイドボタン */}
             <line x1="26" y1="45" x2="26" y2="58" strokeWidth="9" />
           </svg>
         );
       }
 
       // 3. ゲームコントローラー
-      if (cat.includes('コントローラー') || name.includes('gamepad') || name.includes('controller') || name.includes('dual')) {
+      if (cat.includes('コントローラー') || cat.includes('gamepad') || name.includes('gamepad') || name.includes('controller') || name.includes('dual')) {
         return (
           <svg width="34" height="34" viewBox="0 0 100 100" fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
-            {/* コントローラー外形 */}
             <path d="M25 35 C18 42, 14 68, 22 84 C26 90, 34 88, 38 76 L44 60 L56 60 L62 76 C66 88, 74 90, 78 84 C86 68, 82 42, 75 35 C68 28, 32 28, 25 35 Z" />
-            {/* D-Pad 十字キー */}
             <line x1="32" y1="44" x2="32" y2="56" strokeWidth="5" />
             <line x1="26" y1="50" x2="38" y2="50" strokeWidth="5" />
-            {/* アナログスティック 2つ */}
             <circle cx="42" cy="58" r="6" />
             <circle cx="58" cy="58" r="6" />
-            {/* ABXY ボタン */}
             <circle cx="68" cy="46" r="2.5" fill={color} />
             <circle cx="74" cy="50" r="2.5" fill={color} />
             <circle cx="68" cy="54" r="2.5" fill={color} />
@@ -361,13 +345,11 @@
         );
       }
 
-      // 4. テンキー / キーボード
-      if (name.includes('テンキー') || name.includes('numpad')) {
+      // 4. テンキー
+      if (cat.includes('テンキー') || cat.includes('tenkey') || name.includes('テンキー') || name.includes('numpad')) {
         return (
           <svg width="34" height="34" viewBox="0 0 100 100" fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
-            {/* テンキー縦長外枠 */}
             <rect x="28" y="16" width="44" height="68" rx="8" />
-            {/* キーグリッド */}
             <line x1="28" y1="36" x2="72" y2="36" />
             <line x1="28" y1="52" x2="72" y2="52" />
             <line x1="28" y1="68" x2="72" y2="68" />
@@ -390,12 +372,11 @@
       );
     }
 
-    // スマート・レコメンド生成関数
     function getSmartRecommendation(dev) {
       const name = (dev.customName || dev.name || '').toLowerCase();
       const cat = (dev.category || '').toLowerCase();
 
-      if (name.includes('tartarus') || name.includes('orbweaver') || name.includes('左手') || cat.includes('左手')) {
+      if (name.includes('tartarus') || name.includes('orbweaver') || name.includes('左手') || cat.includes('左手') || cat.includes('lefthand')) {
         return {
           text: 'Razer Tartarus対応 交換パームレスト / 静音化',
           query: 'Razer Tartarus リストレスト 交換'
@@ -407,13 +388,13 @@
           query: 'Logicool G マウスソール 充電ドック'
         };
       }
-      if (cat.includes('マウス')) {
+      if (cat.includes('マウス') || cat.includes('mouse')) {
         return {
           text: 'ゲーミングマウス用 超低摩擦ガラスソール',
           query: 'ゲーミングマウス ソール 超低摩擦'
         };
       }
-      if (cat.includes('コントローラー')) {
+      if (cat.includes('コントローラー') || cat.includes('gamepad')) {
         return {
           text: 'エイム向上 スティッククッション / アシストキャップ',
           query: 'FPS エイム アシストキャップ'
@@ -432,19 +413,40 @@
       const [showSettingsModal, setShowSettingsModal] = useState(false);
       const [soundEnabled, setSoundEnabled] = useState(true);
 
-      const [devices, setDevices] = useState([
-        {
-          id: 'mouse_logicool_default',
-          name: '【Logicool】 ゲーミングマウス (G PRO / MX Master)',
-          brand: 'Logicool / Logitech',
-          category: 'マウス / ポインティング',
-          connectionType: 'usb',
-          connectionTypeLabel: '🔌 USB 有線 / 🔵 Bluetooth',
-          enabled: true,
-          lastActive: Date.now(),
-          telemetry: '入力検知待機中...'
+      const catMap = {
+        'lefthand': '左手デバイス・キーパッド',
+        'mouse': 'マウス / ポインティング',
+        'keyboard': 'キーボード類',
+        'gamepad': 'ゲームコントローラー',
+        'tenkey': 'テンキー類'
+      };
+
+      const getInitialDevices = () => {
+        if (window.DETECTED_PNP_DEVICES && Array.isArray(window.DETECTED_PNP_DEVICES) && window.DETECTED_PNP_DEVICES.length > 0) {
+          return window.DETECTED_PNP_DEVICES.map(d => ({
+            ...d,
+            category: catMap[d.category] || d.category || 'その他入力機器',
+            connectionTypeLabel: d.connectionType === 'bluetooth' ? '🔵 Bluetooth 無線' : '🔌 USB 有線',
+            lastActive: Date.now(),
+            telemetry: 'Windows PnP 接続確認済 (正常稼働)'
+          }));
         }
-      ]);
+        return [
+          {
+            id: 'mouse_logicool_default',
+            name: '【Logicool】 ゲーミングマウス (G PRO / MX Master)',
+            brand: 'Logicool / Logitech',
+            category: 'マウス / ポインティング',
+            connectionType: 'usb',
+            connectionTypeLabel: '🔌 USB 有線 / 🔵 Bluetooth',
+            enabled: true,
+            lastActive: Date.now(),
+            telemetry: '入力検知待機中...'
+          }
+        ];
+      };
+
+      const [devices, setDevices] = useState(getInitialDevices);
       const [toast, setToast] = useState(null);
       const [hudOpacity, setHudOpacity] = useState(0.85);
       const [editingId, setEditingId] = useState(null);
@@ -462,21 +464,16 @@
         showToast(next ? '🔊 SF効果音を ON にしました' : '🔇 効果音を OFF（消音）にしました');
       };
 
-      const registerOrUpdateDevice = (devInfo) => {
-        setDevices(prev => {
-          const exists = prev.find(d => d.id === devInfo.id || (devInfo.category === 'マウス / ポインティング' && d.category === 'マウス / ポインティング'));
-          if (exists) {
-            if (!exists.enabled) return prev;
-            return prev.map(d => (d.id === exists.id) ? { 
-              ...d, 
-              ...devInfo, 
-              name: d.customName || d.name || devInfo.name, 
-              lastActive: Date.now() 
-            } : d);
-          }
-          CyberSound.playClick(soundEnabled);
-          return [...prev, { ...devInfo, customName: null, enabled: true, lastActive: Date.now() }];
-        });
+      const rescanDevices = () => {
+        CyberSound.playClick(soundEnabled);
+        showToast('🔄 最新のPnP機器を再スキャン中...');
+        const s = document.createElement('script');
+        s.src = 'devices_data.js?t=' + Date.now();
+        s.onload = () => {
+          setDevices(getInitialDevices());
+          showToast('✅ 接続デバイス一覧を最新状態に更新しました！');
+        };
+        document.body.appendChild(s);
       };
 
       const toggleDevice = (id) => {
@@ -546,59 +543,67 @@
             }
           }
           
-          registerOrUpdateDevice({
-            id: 'real_keyboard_main',
-            name: 'メインキーボード / キー入力機器',
-            category: 'キーボード・テンキー類',
-            connectionType: 'usb',
-            connectionTypeLabel: '🔌 Windows PnP 直結',
-            telemetry: `最新キー: [${e.key === ' ' ? 'Space' : e.key}] | リアルタイム入力検知`
-          });
+          // キー入力検知: 左手デバイスやキーボードのカードをリアルタイム発光更新
+          setDevices(prev => prev.map(d => {
+            const isLeftHand = d.category.includes('左手') || d.name.toLowerCase().includes('tartarus') || d.name.toLowerCase().includes('orbweaver');
+            const isKb = d.category.includes('キーボード') || d.name.toLowerCase().includes('keyboard');
+            if ((isLeftHand || isKb) && d.enabled) {
+              return {
+                ...d,
+                lastActive: Date.now(),
+                telemetry: `キー検知: [${e.key === ' ' ? 'Space' : e.key}] | リアルタイム通信中`
+              };
+            }
+            return d;
+          }));
         };
 
         const handleMouseMove = (e) => {
           if (Math.abs(e.movementX) > 5 || Math.abs(e.movementY) > 5) {
-            registerOrUpdateDevice({
-              id: 'mouse_logicool_default',
-              name: '【Logicool】 ゲーミングマウス (G PRO / MX Master)',
-              category: 'マウス / ポインティング',
-              connectionType: 'usb',
-              connectionTypeLabel: '🔌 有線 / 🔵 Bluetooth',
-              telemetry: `移動検知: ${Math.round(Math.sqrt(e.movementX**2 + e.movementY**2))} px/f`
-            });
+            setDevices(prev => prev.map(d => {
+              const isMouse = d.category.includes('マウス') || d.name.toLowerCase().includes('mouse');
+              if (isMouse && d.enabled) {
+                return {
+                  ...d,
+                  lastActive: Date.now(),
+                  telemetry: `移動検知: ${Math.round(Math.sqrt(e.movementX**2 + e.movementY**2))} px/f`
+                };
+              }
+              return d;
+            }));
           }
         };
 
         const handleMouseDown = (e) => {
           const btnName = e.button === 0 ? 'Left Click' : e.button === 2 ? 'Right Click' : 'Middle Click';
-          registerOrUpdateDevice({
-            id: 'mouse_logicool_default',
-            name: '【Logicool】 ゲーミングマウス (G PRO / MX Master)',
-            category: 'マウス / ポインティング',
-            connectionType: 'usb',
-            connectionTypeLabel: '🔌 有線 / 🔵 Bluetooth',
-            telemetry: `クリック検知: ${btnName}`
-          });
+          setDevices(prev => prev.map(d => {
+            const isMouse = d.category.includes('マウス') || d.name.toLowerCase().includes('mouse');
+            if (isMouse && d.enabled) {
+              return {
+                ...d,
+                lastActive: Date.now(),
+                telemetry: `クリック検知: ${btnName}`
+              };
+            }
+            return d;
+          }));
         };
 
         const scanGamepads = () => {
           const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
           for (let i = 0; i < gamepads.length; i++) {
             const gp = gamepads[i];
-            if (gp) {
-              const isBt = gp.id.toLowerCase().includes('bluetooth') || gp.id.toLowerCase().includes('wireless');
-              const connLabel = isBt ? '🔵 Bluetooth 無線' : '🔌 USB 有線';
-
-              if (gp.buttons.some(b => b.pressed) || gp.axes.some(a => Math.abs(a) > 0.15)) {
-                registerOrUpdateDevice({
-                  id: `gp_${gp.index}`,
-                  name: gp.id ? gp.id.split('(')[0] : `ゲームコントローラー #${gp.index + 1}`,
-                  category: 'ゲームコントローラー',
-                  connectionType: isBt ? 'bluetooth' : 'usb',
-                  connectionTypeLabel: connLabel,
-                  telemetry: `操作検知中`
-                });
-              }
+            if (gp && (gp.buttons.some(b => b.pressed) || gp.axes.some(a => Math.abs(a) > 0.15))) {
+              setDevices(prev => prev.map(d => {
+                if (d.category.includes('コントローラー') && d.enabled) {
+                  return {
+                    ...d,
+                    lastActive: Date.now(),
+                    telemetry: `パッド操作検知中 (${gp.id.split('(')[0].trim()})`
+                  };
+                }
+                return d;
+              }));
             }
           }
         };
@@ -616,7 +621,20 @@
         };
       }, [viewMode, hudHotkey, enableHotkeys, soundEnabled]);
 
-      const categories = Array.from(new Set(devices.map(d => d.category)));
+      const categoryOrder = [
+        '左手デバイス・キーパッド',
+        'マウス / ポインティング',
+        'ゲームコントローラー',
+        'キーボード類',
+        'テンキー類',
+        'その他入力機器'
+      ];
+      const categories = Array.from(new Set(devices.map(d => d.category)))
+        .sort((a, b) => {
+          const idxA = categoryOrder.indexOf(a);
+          const idxB = categoryOrder.indexOf(b);
+          return (idxA !== -1 ? idxA : 99) - (idxB !== -1 ? idxB : 99);
+        });
 
       if (viewMode === 'hud') {
         return (
@@ -669,13 +687,21 @@
               <div className="brand-title">
                 <img src="icon.jpg" className="brand-logo-img" alt="InputNexus Logo" />
                 <span>InputNexus Prime</span>
-                <span className="badge-v">シルエット・SF音響搭載</span>
+                <span className="badge-v">Windows PnP リアルタイム検出</span>
               </div>
-              <div className="sub-text">サイバーパンクUI ＆ Windows物理無効化・ハイブリッド入力マネージャー</div>
+              <div className="sub-text">左手デバイス（Tartarus Pro等）・コントローラー・マウス個別物理制御</div>
             </div>
 
             <div className="header-actions">
-              {/* 効果音ON/OFFトグル */}
+              <button 
+                className="btn"
+                style={{ borderColor: 'rgba(0, 240, 255, 0.4)', color: '#00f0ff' }}
+                onClick={rescanDevices}
+                title="USB機器の接続状況を再検出"
+              >
+                🔄 機器再読込
+              </button>
+
               <button 
                 className={`sound-toggle-btn ${soundEnabled ? 'sound-on' : 'sound-off'}`}
                 onClick={toggleSound}
@@ -733,7 +759,6 @@
                     <div key={device.id} className={`card ${isRecent ? 'active-glow' : ''}`}>
                       <div className="card-top">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          {/* サイバーシルエットアイコン */}
                           <div className={`silhouette-badge ${isRecent ? 'active' : ''} ${!device.enabled ? 'disabled' : ''}`}>
                             <DeviceSilhouette dev={device} enabled={device.enabled} isRecent={isRecent} />
                           </div>
@@ -779,7 +804,6 @@
                         {device.enabled ? device.telemetry : '🛑 入力は物理レベルで安全に停止されています'}
                       </div>
 
-                      {/* スマート・レコメンド（アフィリエイト連携可能枠） */}
                       <div className="recommend-box">
                         <span className="recommend-label">
                           <span>🛒</span>

@@ -1,5 +1,9 @@
 @echo off
 title InputNexus - Input Device Manager
+
+:: スキャン用 PowerShell スクリプトを実行して最新のPnP機器リストを出力
+powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0scan_devices.ps1"
+
 :: Check if MS Edge exists (Pre-installed on all Windows 10 & 11 PCs)
 set EDGE_PATH="%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"
 set EDGE_PATH64="%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"

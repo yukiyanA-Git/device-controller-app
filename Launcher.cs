@@ -26,6 +26,28 @@ namespace InputNexus
                     return;
                 }
 
+                // スキャン用 PowerShell スクリプトを実行して最新のPnP機器リストを出力
+                string scanScript = Path.Combine(baseDir, "scan_devices.ps1");
+                if (File.Exists(scanScript))
+                {
+                    try
+                    {
+                        ProcessStartInfo scanPsi = new ProcessStartInfo
+                        {
+                            FileName = "powershell.exe",
+                            Arguments = string.Format("-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{0}\"", scanScript),
+                            CreateNoWindow = true,
+                            UseShellExecute = false,
+                            WorkingDirectory = baseDir
+                        };
+                        using (Process proc = Process.Start(scanPsi))
+                        {
+                            proc.WaitForExit(2500);
+                        }
+                    }
+                    catch { }
+                }
+
                 string edgeX86 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Microsoft\Edge\Application\msedge.exe");
                 string edgeX64 = Path.Combine(Environment.GetEnvironmentVariable("ProgramFiles") ?? @"C:\Program Files", @"Microsoft\Edge\Application\msedge.exe");
 
