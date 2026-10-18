@@ -22,7 +22,8 @@ $ProductTable = @{
     "1532:022B" = "Razer Tartarus V2"
     "1532:01DD" = "Razer Tartarus Classic"
     "1532:0113" = "Razer Orbweaver"
-    "046D:C534" = "Logicool Wireless Receiver"
+    "046D:C534:mouse" = "Logicool Wireless Mouse (Unifying)"
+    "046D:C534:keyboard" = "Logicool Wireless Keyboard (Unifying)"
     "046D:C539" = "Logicool LIGHTSPEED Receiver"
     "046D:C08B" = "Logicool G502 HERO Mouse"
     "046D:C094" = "Logicool G PRO X SUPERLIGHT Mouse"
@@ -46,6 +47,9 @@ $noisePatterns = @(
     "*VID_046D&PID_0000*", "*VID_046D&PID_C232*"
 )
 
+# 1. 最初にPnPデバイスからVID/PIDとクラスを抽出
+$hasLogicoolMouse = $false
+
 foreach ($dev in $pnp) {
     $inst = $dev.InstanceId
     $friendly = $dev.FriendlyName
@@ -66,37 +70,54 @@ foreach ($dev in $pnp) {
     if ($inst -match "PID_([0-9A-Fa-f]{4})") { $pidHex = $Matches[1].ToUpper() }
 
     $brand = ""
-    $prod = ""
     if ($VendorTable.ContainsKey($vidHex)) { $brand = $VendorTable[$vidHex] }
-    if ($vidHex -ne "" -and $pidHex -ne "") {
-        $vpKey = $vidHex + ":" + $pidHex
-        if ($ProductTable.ContainsKey($vpKey)) { $prod = $ProductTable[$vpKey] }
-    }
 
-    $dispName = ""
+    $devTypeKey = if ($dev.Class -eq "Mouse") { "mouse" } elseif ($dev.Class -eq "Keyboard") { "keyboard" } else { "hid" }
+    
     $uniqueKey = ""
+    $dispName = ""
+    $category = "keyboard"
 
-    if ($prod -ne "") {
-        $dispName = "[" + $brand + "] " + $prod
-        $uniqueKey = $vidHex + ":" + $pidHex
-    } elseif ($brand -ne "") {
-        $baseType = "Input Device"
-        if ($dev.Class -eq "Mouse" -or $inst -like "*Mouse*") {
-            $baseType = "Mouse"
+    # 特殊判定: Logicool Unifying (C534) はマウスとキーボードを別個のデバイスとして分離
+    if ($vidHex -eq "046D" -and $pidHex -eq "C534") {
+        if ($dev.Class -eq "Mouse") {
+            $uniqueKey = "046D:C534:mouse"
+            $dispName = "[Logicool / Logitech] Wireless Mouse (Unifying)"
+            $category = "mouse"
+            $hasLogicoolMouse = $true
         } elseif ($dev.Class -eq "Keyboard") {
-            $baseType = "Keyboard"
-        } elseif ($dev.Class -eq "HIDClass") {
-            $baseType = "Controller"
+            $uniqueKey = "046D:C534:keyboard"
+            $dispName = "[Logicool / Logitech] Wireless Keyboard (Unifying)"
+            $category = "keyboard"
+        } else {
+            continue
         }
-        $dispName = "[" + $brand + "] " + $baseType
-        $uniqueKey = $vidHex + ":" + $pidHex
+    } elseif ($vidHex -eq "1532" -and $pidHex -eq "0244") {
+        $uniqueKey = "1532:0244"
+        $dispName = "[Razer] Razer Tartarus Pro"
+        $category = "lefthand"
+    } elseif ($vidHex -ne "" -and $pidHex -ne "") {
+        $vpKey = $vidHex + ":" + $pidHex
+        $uniqueKey = $vpKey
+        if ($ProductTable.ContainsKey($vpKey)) {
+            $dispName = "[" + $brand + "] " + $ProductTable[$vpKey]
+        } elseif ($brand -ne "") {
+            $baseType = "Input Device"
+            if ($dev.Class -eq "Mouse") { $baseType = "Mouse"; $category = "mouse" }
+            elseif ($dev.Class -eq "Keyboard") { $baseType = "Keyboard"; $category = "keyboard" }
+            elseif ($dev.Class -eq "HIDClass") { $baseType = "Controller"; $category = "gamepad" }
+            $dispName = "[" + $brand + "] " + $baseType
+        }
     } else {
-        if ($dev.Class -eq "Mouse" -or $friendly -like "*Mouse*") {
-            $dispName = "Standard Mouse"
+        # 汎用機器
+        if ($dev.Class -eq "Mouse" -and -not $hasLogicoolMouse) {
             $uniqueKey = "generic_mouse"
+            $dispName = "Standard Mouse"
+            $category = "mouse"
         } elseif ($dev.Class -eq "Keyboard") {
-            $dispName = "Standard Keyboard"
             $uniqueKey = "generic_keyboard"
+            $dispName = "Standard Keyboard"
+            $category = "keyboard"
         } else {
             continue
         }
@@ -107,15 +128,12 @@ foreach ($dev in $pnp) {
     }
     $seen[$uniqueKey] = $true
 
-    $category = "keyboard"
-    if ($inst -like "*1532*0244*" -or $inst -like "*1532*022B*" -or $dispName -like "*Tartarus*" -or $dispName -like "*Orbweaver*") {
+    if ($dispName -like "*Tartarus*" -or $dispName -like "*Orbweaver*") {
         $category = "lefthand"
-    } elseif ($dev.Class -eq "Mouse" -or $dispName -like "*Mouse*") {
+    } elseif ($dispName -like "*Mouse*") {
         $category = "mouse"
     } elseif ($dispName -like "*Controller*" -or $dispName -like "*Gamepad*" -or $dispName -like "*Flydigi*" -or $dispName -like "*PlayStation*") {
         $category = "gamepad"
-    } elseif ($dispName -like "*Tenkey*" -or $dispName -like "*Numeric*" -or $dispName -like "*IBM*") {
-        $category = "tenkey"
     }
 
     $isBt = $inst -like "*BTHENUM*" -or $inst -like "*BLUETOOTH*" -or $dispName -like "*Bluetooth*"
@@ -139,4 +157,4 @@ $targetFile = Join-Path $PSScriptRoot "devices_data.js"
 $jsContent = "window.DETECTED_PNP_DEVICES = " + $json + ";"
 [System.IO.File]::WriteAllText($targetFile, $jsContent, [System.Text.Encoding]::UTF8)
 
-Write-Host "Generated clean devices_data.js successfully."
+Write-Host "Generated clean devices_data.js with $($devices.Count) physical devices."

@@ -543,17 +543,34 @@
             }
           }
           
-          // キー入力検知: 左手デバイスやキーボードのカードをリアルタイム発光更新
+          // Tartarus Pro固有のキー配置（01〜20キー: 1-5, Tab, QWER, CapsLock, ASDF, Shift, ZX, Space）
+          const tartarusKeys = new Set(['1','2','3','4','5','tab','q','w','e','r','capslock','a','s','d','f','shift','z','x','c',' ']);
+          const keyLower = e.key.toLowerCase();
+          const isGamingCluster = tartarusKeys.has(keyLower);
+
+          // キー入力検知: メインキーボードと左手Tartarusをインテリジェントに区別
           setDevices(prev => prev.map(d => {
-            const isLeftHand = d.category.includes('左手') || d.name.toLowerCase().includes('tartarus') || d.name.toLowerCase().includes('orbweaver');
-            const isKb = d.category.includes('キーボード') || d.name.toLowerCase().includes('keyboard');
-            if ((isLeftHand || isKb) && d.enabled) {
+            const isKb = d.category.includes('キーボード') || d.id.includes('keyboard');
+            const isTartarus = d.category.includes('左手') || d.name.toLowerCase().includes('tartarus') || d.name.toLowerCase().includes('orbweaver');
+
+            // 1. メインキーボード: すべてのキー入力で確実に反応
+            if (isKb && d.enabled) {
               return {
                 ...d,
                 lastActive: Date.now(),
                 telemetry: `キー検知: [${e.key === ' ' ? 'Space' : e.key}] | リアルタイム通信中`
               };
             }
+
+            // 2. 左手デバイス: Tartarusのキー（WASD, QER, 1-5, Tab等）が押された時のみ反応（通常タイピング時の誤反応を防止）
+            if (isTartarus && isGamingCluster && d.enabled) {
+              return {
+                ...d,
+                lastActive: Date.now(),
+                telemetry: `左手キー操作: [${e.key === ' ' ? 'Space' : e.key}] | ゲーミング通信中`
+              };
+            }
+
             return d;
           }));
         };
@@ -561,7 +578,7 @@
         const handleMouseMove = (e) => {
           if (Math.abs(e.movementX) > 5 || Math.abs(e.movementY) > 5) {
             setDevices(prev => prev.map(d => {
-              const isMouse = d.category.includes('マウス') || d.name.toLowerCase().includes('mouse') || d.id === 'pnp_046D_C534';
+              const isMouse = d.category.includes('マウス') || d.id.includes('mouse') || d.id === 'pnp_046D_C534_mouse';
               if (isMouse && d.enabled) {
                 return {
                   ...d,
@@ -577,7 +594,7 @@
         const handleMouseDown = (e) => {
           const btnName = e.button === 0 ? 'Left Click' : e.button === 2 ? 'Right Click' : 'Middle Click';
           setDevices(prev => prev.map(d => {
-            const isMouse = d.category.includes('マウス') || d.name.toLowerCase().includes('mouse') || d.id === 'pnp_046D_C534';
+            const isMouse = d.category.includes('マウス') || d.id.includes('mouse') || d.id === 'pnp_046D_C534_mouse';
             if (isMouse && d.enabled) {
               return {
                 ...d,
