@@ -561,7 +561,7 @@
         const handleMouseMove = (e) => {
           if (Math.abs(e.movementX) > 5 || Math.abs(e.movementY) > 5) {
             setDevices(prev => prev.map(d => {
-              const isMouse = d.category.includes('マウス') || d.name.toLowerCase().includes('mouse');
+              const isMouse = d.category.includes('マウス') || d.name.toLowerCase().includes('mouse') || d.id === 'pnp_046D_C534';
               if (isMouse && d.enabled) {
                 return {
                   ...d,
@@ -577,7 +577,7 @@
         const handleMouseDown = (e) => {
           const btnName = e.button === 0 ? 'Left Click' : e.button === 2 ? 'Right Click' : 'Middle Click';
           setDevices(prev => prev.map(d => {
-            const isMouse = d.category.includes('マウス') || d.name.toLowerCase().includes('mouse');
+            const isMouse = d.category.includes('マウス') || d.name.toLowerCase().includes('mouse') || d.id === 'pnp_046D_C534';
             if (isMouse && d.enabled) {
               return {
                 ...d,
@@ -594,12 +594,28 @@
           for (let i = 0; i < gamepads.length; i++) {
             const gp = gamepads[i];
             if (gp && (gp.buttons.some(b => b.pressed) || gp.axes.some(a => Math.abs(a) > 0.15))) {
+              const gpName = (gp.id || '').toLowerCase();
               setDevices(prev => prev.map(d => {
-                if (d.category.includes('コントローラー') && d.enabled) {
+                if (!d.category.includes('コントローラー') || !d.enabled) return d;
+                const devName = (d.customName || d.name || '').toLowerCase();
+                
+                const isXbox = gpName.includes('xbox') || gpName.includes('xinput');
+                const isPS = gpName.includes('sony') || gpName.includes('dual') || gpName.includes('playstation') || gpName.includes('wireless controller');
+                
+                let matches = false;
+                if (isXbox && (devName.includes('xbox') || devName.includes('flydigi'))) {
+                  matches = true;
+                } else if (isPS && (devName.includes('sony') || devName.includes('playstation'))) {
+                  matches = true;
+                } else if (!isXbox && !isPS) {
+                  matches = true;
+                }
+
+                if (matches) {
                   return {
                     ...d,
                     lastActive: Date.now(),
-                    telemetry: `パッド操作検知中 (${gp.id.split('(')[0].trim()})`
+                    telemetry: `操作検知中 (${gp.id.split('(')[0].trim()})`
                   };
                 }
                 return d;

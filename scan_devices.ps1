@@ -22,12 +22,12 @@ $ProductTable = @{
     "1532:022B" = "Razer Tartarus V2"
     "1532:01DD" = "Razer Tartarus Classic"
     "1532:0113" = "Razer Orbweaver"
-    "046D:C534" = "Logicool Unifying Receiver"
+    "046D:C534" = "Logicool Wireless Receiver"
     "046D:C539" = "Logicool LIGHTSPEED Receiver"
     "046D:C08B" = "Logicool G502 HERO Mouse"
     "046D:C094" = "Logicool G PRO X SUPERLIGHT Mouse"
-    "046D:C232" = "Logicool G29 / Gaming Driving Force"
     "37D7:2401" = "Flydigi Vader 5 Pro"
+    "045E:028E" = "Flydigi / Xbox Controller"
     "054C:0CE6" = "Sony DualSense Controller"
     "054C:05C4" = "Sony DUALSHOCK 4 Controller"
     "054C:0EC2" = "Sony PlayStation Controller"
@@ -39,8 +39,27 @@ $pnp = Get-PnpDevice -Class Keyboard, Mouse, HIDClass -Status OK
 $devices = @()
 $seen = @{}
 
+$noisePatterns = @(
+    "*Touch Screen*", "*Virtual*", "*LED*", "*Hub*", "*Host*", "*Root*",
+    "*Feizhi*", "*vendor-defined*", "*consumer control*", "*system controller*",
+    "*USB Input Device*", "*HID-compliant device*", "*HID-compliant consumer*",
+    "*VID_046D&PID_0000*", "*VID_046D&PID_C232*"
+)
+
 foreach ($dev in $pnp) {
     $inst = $dev.InstanceId
+    $friendly = $dev.FriendlyName
+    if (-not $friendly) { $friendly = $dev.Name }
+
+    $isNoise = $false
+    foreach ($pat in $noisePatterns) {
+        if ($inst -like $pat -or $friendly -like $pat) {
+            $isNoise = $true
+            break
+        }
+    }
+    if ($isNoise) { continue }
+
     $vidHex = ""
     $pidHex = ""
     if ($inst -match "VID_([0-9A-Fa-f]{4})") { $vidHex = $Matches[1].ToUpper() }
@@ -69,25 +88,31 @@ foreach ($dev in $pnp) {
         } elseif ($dev.Class -eq "HIDClass") {
             $baseType = "Controller"
         }
-        $dispName = "[" + $brand + "] " + $baseType + " (VID:" + $vidHex + ")"
+        $dispName = "[" + $brand + "] " + $baseType
         $uniqueKey = $vidHex + ":" + $pidHex
     } else {
-        $dispName = $dev.FriendlyName
-        if (-not $dispName) { $dispName = $dev.Name }
-        $uniqueKey = $dispName
+        if ($dev.Class -eq "Mouse" -or $friendly -like "*Mouse*") {
+            $dispName = "Standard Mouse"
+            $uniqueKey = "generic_mouse"
+        } elseif ($dev.Class -eq "Keyboard") {
+            $dispName = "Standard Keyboard"
+            $uniqueKey = "generic_keyboard"
+        } else {
+            continue
+        }
     }
 
-    if (-not $dispName -or $seen.ContainsKey($uniqueKey) -or $dispName -like "*Touch Screen*" -or $dispName -like "*Virtual*" -or $dispName -like "*LED*" -or $dispName -like "*Hub*" -or $dispName -like "*Controller -*" -or $dispName -like "*Root*" -or $dispName -like "*Host*") {
+    if (-not $dispName -or $seen.ContainsKey($uniqueKey)) {
         continue
     }
     $seen[$uniqueKey] = $true
 
     $category = "keyboard"
-    if ($inst -like "*1532*0244*" -or $inst -like "*1532*022B*" -or $inst -like "*1532*01DD*" -or $inst -like "*1532*0113*" -or $dispName -like "*Tartarus*" -or $dispName -like "*Orbweaver*") {
+    if ($inst -like "*1532*0244*" -or $inst -like "*1532*022B*" -or $dispName -like "*Tartarus*" -or $dispName -like "*Orbweaver*") {
         $category = "lefthand"
     } elseif ($dev.Class -eq "Mouse" -or $dispName -like "*Mouse*") {
         $category = "mouse"
-    } elseif ($dispName -like "*Controller*" -or $dispName -like "*Gamepad*" -or $dispName -like "*Flydigi*" -or $dispName -like "*DualSense*") {
+    } elseif ($dispName -like "*Controller*" -or $dispName -like "*Gamepad*" -or $dispName -like "*Flydigi*" -or $dispName -like "*PlayStation*") {
         $category = "gamepad"
     } elseif ($dispName -like "*Tenkey*" -or $dispName -like "*Numeric*" -or $dispName -like "*IBM*") {
         $category = "tenkey"
@@ -114,4 +139,4 @@ $targetFile = Join-Path $PSScriptRoot "devices_data.js"
 $jsContent = "window.DETECTED_PNP_DEVICES = " + $json + ";"
 [System.IO.File]::WriteAllText($targetFile, $jsContent, [System.Text.Encoding]::UTF8)
 
-Write-Host "Generated devices_data.js successfully."
+Write-Host "Generated clean devices_data.js successfully."
