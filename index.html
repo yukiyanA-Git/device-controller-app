@@ -159,6 +159,79 @@
 
     .telemetry-box { background: rgba(0,0,0,0.4); border-radius: 8px; padding: 8px 10px; border: 1px solid var(--border-color); font-size: 0.78rem; font-family: var(--font-mono); }
     
+    .battery-box {
+      background: rgba(15, 20, 28, 0.75);
+      border-radius: 8px;
+      padding: 8px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.76rem;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .battery-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .battery-title {
+      font-weight: 700;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.74rem;
+    }
+    .battery-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .battery-badge.ok {
+      background: rgba(0, 255, 136, 0.12);
+      border: 1px solid rgba(0, 255, 136, 0.45);
+      color: var(--accent-green);
+    }
+    .battery-badge.low {
+      background: rgba(255, 51, 102, 0.15);
+      border: 1px solid rgba(255, 51, 102, 0.5);
+      color: var(--accent-red);
+    }
+    .battery-badge.unsupported {
+      background: rgba(255, 170, 0, 0.12);
+      border: 1px solid rgba(255, 170, 0, 0.4);
+      color: #ffb84d;
+    }
+    .battery-badge.wired {
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid rgba(0, 240, 255, 0.28);
+      color: var(--accent-cyan);
+    }
+    .battery-note {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+    .battery-bar-container {
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 2px;
+    }
+    .battery-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+
     .recommend-box {
       display: flex; justify-content: space-between; align-items: center;
       background: rgba(0, 240, 255, 0.04); border: 1px dashed rgba(0, 240, 255, 0.25);
@@ -423,13 +496,25 @@
 
       const getInitialDevices = () => {
         if (window.DETECTED_PNP_DEVICES && Array.isArray(window.DETECTED_PNP_DEVICES) && window.DETECTED_PNP_DEVICES.length > 0) {
-          return window.DETECTED_PNP_DEVICES.map(d => ({
-            ...d,
-            category: catMap[d.category] || d.category || 'その他入力機器',
-            connectionTypeLabel: d.connectionType === 'bluetooth' ? '🔵 Bluetooth 無線' : '🔌 USB 有線',
-            lastActive: Date.now(),
-            telemetry: 'Windows PnP 接続確認済 (正常稼働)'
-          }));
+          return window.DETECTED_PNP_DEVICES.map(d => {
+            let connLabel = '🔌 USB 有線';
+            if (d.connectionType === 'bluetooth') {
+              connLabel = '🔵 Bluetooth 無線';
+            } else if (d.batteryType === 'dongle' || (d.connectionTypeLabel && d.connectionTypeLabel.includes('Dongle')) || (d.connectionTypeLabel && d.connectionTypeLabel.includes('Unifying'))) {
+              connLabel = '📡 USB 独自無線ドングル';
+            }
+            return {
+              ...d,
+              category: catMap[d.category] || d.category || 'その他入力機器',
+              connectionTypeLabel: connLabel,
+              batteryStatus: d.batteryStatus || 'wired',
+              batteryLevel: d.batteryLevel !== undefined ? d.batteryLevel : null,
+              batteryType: d.batteryType || (d.connectionType === 'bluetooth' ? 'bluetooth' : 'wired'),
+              batteryNote: d.batteryNote || '',
+              lastActive: Date.now(),
+              telemetry: 'Windows PnP 接続確認済 (正常稼働)'
+            };
+          });
         }
         return [
           {
@@ -439,11 +524,78 @@
             category: 'マウス / ポインティング',
             connectionType: 'usb',
             connectionTypeLabel: '🔌 USB 有線 / 🔵 Bluetooth',
+            batteryStatus: 'unsupported',
+            batteryLevel: null,
+            batteryType: 'dongle',
+            batteryNote: '独自2.4GHzドングル経由のため残量読み取り非対応',
             enabled: true,
             lastActive: Date.now(),
             telemetry: '入力検知待機中...'
           }
         ];
+      };
+
+      const renderBatteryBadge = (dev) => {
+        const status = dev.batteryStatus || 'wired';
+        if (status === 'ok') {
+          const level = dev.batteryLevel !== null ? dev.batteryLevel : 100;
+          const icon = level > 20 ? '🔋' : '🪫';
+          return `${icon} ${level}%`;
+        }
+        if (status === 'charging') {
+          return `⚡ 充電中 (${dev.batteryLevel || 100}%)`;
+        }
+        if (status === 'unsupported') {
+          return '⚠️ 読取非対応';
+        }
+        return '🔌 常時給電';
+      };
+
+      const renderBatteryBox = (dev) => {
+        const status = dev.batteryStatus || 'wired';
+        let title = 'USB常時給電（バッテリー非搭載）';
+        let badgeClass = 'wired';
+        let note = dev.batteryNote || 'USBケーブル直結のため、バッテリー切れの心配なく常時安定給電されます。';
+
+        if (status === 'ok') {
+          const level = dev.batteryLevel !== null ? dev.batteryLevel : 100;
+          title = `Bluetooth ワイヤレス残量 (${level}%)`;
+          badgeClass = level <= 20 ? 'low' : 'ok';
+          note = dev.batteryNote || 'Windows標準Bluetooth API (BAS) 経由でバッテリー残量を正常取得中';
+        } else if (status === 'unsupported') {
+          title = 'バッテリー残量読み取り非対応';
+          badgeClass = 'unsupported';
+          note = '※独自2.4GHz無線ドングル通信のため、OS標準APIからのバッテリー残量読み取りには対応していません（メーカー専用ソフト側でご確認ください）。';
+        } else if (status === 'charging') {
+          title = `急速充電中 (${dev.batteryLevel || 100}%)`;
+          badgeClass = 'ok';
+        }
+
+        return (
+          <div className="battery-box">
+            <div className="battery-header">
+              <span className="battery-title">
+                <span>⚡ 給電・バッテリー:</span>
+                <span style={{ color: '#fff', fontWeight: 600 }}>{title}</span>
+              </span>
+              <span className={`battery-badge ${badgeClass}`}>
+                {renderBatteryBadge(dev)}
+              </span>
+            </div>
+            {status === 'ok' && dev.batteryLevel !== null && (
+              <div className="battery-bar-container">
+                <div 
+                  className="battery-bar-fill" 
+                  style={{ 
+                    width: `${Math.min(Math.max(dev.batteryLevel, 5), 100)}%`, 
+                    background: dev.batteryLevel > 20 ? 'var(--accent-green)' : 'var(--accent-red)' 
+                  }} 
+                />
+              </div>
+            )}
+            <div className="battery-note">{note}</div>
+          </div>
+        );
       };
 
       const [devices, setDevices] = useState(getInitialDevices);
@@ -656,9 +808,9 @@
 
       const categoryOrder = [
         '左手デバイス・キーパッド',
-        'キーボード類',
         'マウス / ポインティング',
         'ゲームコントローラー',
+        'キーボード類',
         'テンキー類',
         'その他入力機器'
       ];
@@ -686,7 +838,14 @@
                 <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <DeviceSilhouette dev={d} enabled={d.enabled} isRecent={false} />
-                    <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{d.customName || d.name}</span>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{d.customName || d.name}</div>
+                      <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
+                        <span className={`battery-badge ${d.batteryStatus || 'wired'}`} style={{ fontSize: '0.64rem', padding: '1px 5px' }}>
+                          {renderBatteryBadge(d)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                   <button className={`switch-btn ${d.enabled ? 'on' : 'off'}`} onClick={() => toggleDevice(d.id)}>{d.enabled ? 'ON' : 'OFF'}</button>
                 </div>
@@ -813,9 +972,12 @@
                                 <button className="rename-btn" title="好きな名前に命名保存" onClick={() => { setEditingId(device.id); setTempName(device.customName || device.name); }}>✏️</button>
                               </div>
                             )}
-                            <div className="dev-sub">
+                            <div className="dev-sub" style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                               <span className={`conn-badge ${device.connectionType}`}>
                                 {device.connectionTypeLabel}
+                              </span>
+                              <span className={`battery-badge ${device.batteryStatus || 'wired'}`} style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
+                                {renderBatteryBadge(device)}
                               </span>
                             </div>
                           </div>
@@ -836,6 +998,8 @@
                       <div className="telemetry-box">
                         {device.enabled ? device.telemetry : '🛑 入力は物理レベルで安全に停止されています'}
                       </div>
+
+                      {renderBatteryBox(device)}
 
                       <div className="recommend-box">
                         <span className="recommend-label">

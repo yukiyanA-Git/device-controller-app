@@ -139,22 +139,63 @@ foreach ($dev in $pnp) {
     $isBt = $inst -like "*BTHENUM*" -or $inst -like "*BLUETOOTH*" -or $dispName -like "*Bluetooth*"
     $connType = if ($isBt) { "bluetooth" } else { "usb" }
 
+    # Battery and Power status detection
+    $batteryStatus = "wired"
+    $batteryType = "wired"
+    $batteryLevel = $null
+    $batteryNote = "Wired Connection (Direct Power)"
+
+    if ($isBt) {
+        $batteryType = "bluetooth"
+        try {
+            $prop = Get-PnpDeviceProperty -InstanceId $inst -KeyName '{104EA319-6EE2-4701-BD47-8DDBF425BBE5} 2' -ErrorAction SilentlyContinue
+            if ($prop -and $prop.Data -ne $null) {
+                $batteryLevel = [int]$prop.Data
+                $batteryStatus = "ok"
+                $batteryNote = "Bluetooth BAS Battery"
+            } else {
+                $batteryStatus = "charging_or_unknown"
+                $batteryNote = "Bluetooth Connected (Standby)"
+            }
+        } catch {
+            $batteryStatus = "charging_or_unknown"
+            $batteryNote = "Bluetooth Connected (Standby)"
+        }
+    } elseif ($dispName -like "*Wireless*" -or $dispName -like "*Unifying*" -or $dispName -like "*LIGHTSPEED*" -or $dispName -like "*Flydigi*" -or $uniqueKey -like "*C534*" -or $uniqueKey -like "*C539*" -or $uniqueKey -like "*2401*") {
+        $batteryStatus = "unsupported"
+        $batteryType = "dongle"
+        $batteryLevel = $null
+        $batteryNote = "Proprietary 2.4GHz Dongle (Reading unsupported)"
+    } else {
+        $batteryStatus = "wired"
+        $batteryType = "wired"
+        $batteryLevel = $null
+        $batteryNote = "Wired Connection (Direct Power)"
+    }
+
     $devices += [PSCustomObject]@{
         id = "pnp_" + $uniqueKey.Replace(":", "_").Replace(" ", "_").Replace("-", "_")
         name = $dispName
         brand = $brand
         category = $category
         connectionType = $connType
-        connectionTypeLabel = if ($isBt) { "Bluetooth" } else { "USB" }
+        connectionTypeLabel = if ($isBt) { "Bluetooth" } elseif ($batteryType -eq "dongle") { "USB (Wireless Dongle)" } else { "USB" }
         enabled = $true
         telemetry = "PnP Active"
         lastActive = 0
+        batteryStatus = $batteryStatus
+        batteryType = $batteryType
+        batteryLevel = $batteryLevel
+        batteryNote = $batteryNote
     }
 }
 
-$json = $devices | ConvertTo-Json -Compress
-$targetFile = Join-Path $PSScriptRoot "devices_data.js"
-$jsContent = "window.DETECTED_PNP_DEVICES = " + $json + ";"
-[System.IO.File]::WriteAllText($targetFile, $jsContent, [System.Text.Encoding]::UTF8)
-
-Write-Host "Generated clean devices_data.js with $($devices.Count) physical devices."
+if ($devices.Count -gt 0) {
+    $json = $devices | ConvertTo-Json -Compress
+    $targetFile = Join-Path $PSScriptRoot "devices_data.js"
+    $jsContent = "window.DETECTED_PNP_DEVICES = " + $json + ";"
+    [System.IO.File]::WriteAllText($targetFile, $jsContent, [System.Text.Encoding]::UTF8)
+    Write-Host "Generated clean devices_data.js with $($devices.Count) physical devices."
+} else {
+    Write-Host "PnP scan returned 0 devices, keeping existing devices_data.js."
+}

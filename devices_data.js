@@ -1,1 +1,77 @@
-﻿window.DETECTED_PNP_DEVICES = [{"id":"pnp_1532_0244","name":"[Razer] Razer Tartarus Pro","brand":"Razer","category":"lefthand","connectionType":"usb","connectionTypeLabel":"USB","enabled":true,"telemetry":"PnP Active","lastActive":0},{"id":"pnp_046D_C534_mouse","name":"[Logicool / Logitech] Wireless Mouse (Unifying)","brand":"Logicool / Logitech","category":"mouse","connectionType":"usb","connectionTypeLabel":"USB","enabled":true,"telemetry":"PnP Active","lastActive":0},{"id":"pnp_37D7_2401","name":"[Flydigi] Flydigi Vader 5 Pro","brand":"Flydigi","category":"gamepad","connectionType":"usb","connectionTypeLabel":"USB","enabled":true,"telemetry":"PnP Active","lastActive":0},{"id":"pnp_054C_0EC2","name":"[Sony PlayStation] Sony PlayStation Controller","brand":"Sony PlayStation","category":"gamepad","connectionType":"usb","connectionTypeLabel":"USB","enabled":true,"telemetry":"PnP Active","lastActive":0},{"id":"pnp_046D_C534_keyboard","name":"[Logicool / Logitech] Wireless Keyboard (Unifying)","brand":"Logicool / Logitech","category":"keyboard","connectionType":"usb","connectionTypeLabel":"USB","enabled":true,"telemetry":"PnP Active","lastActive":0}];
+window.DETECTED_PNP_DEVICES = [
+  {
+    "id": "pnp_1532_0244",
+    "name": "[Razer] Razer Tartarus Pro",
+    "brand": "Razer",
+    "category": "lefthand",
+    "connectionType": "usb",
+    "connectionTypeLabel": "USB 有線",
+    "enabled": true,
+    "telemetry": "PnP Active",
+    "lastActive": 0,
+    "batteryStatus": "wired",
+    "batteryType": "wired",
+    "batteryLevel": null,
+    "batteryNote": "USB有線接続（常時給電・バッテリー非搭載）"
+  },
+  {
+    "id": "pnp_046D_C534_mouse",
+    "name": "[Logicool / Logitech] Wireless Mouse (Unifying)",
+    "brand": "Logicool / Logitech",
+    "category": "mouse",
+    "connectionType": "usb",
+    "connectionTypeLabel": "USB (Unifying)",
+    "enabled": true,
+    "telemetry": "PnP Active",
+    "lastActive": 0,
+    "batteryStatus": "unsupported",
+    "batteryType": "dongle",
+    "batteryLevel": null,
+    "batteryNote": "独自2.4GHzドングル経由のため残量読み取り非対応"
+  },
+  {
+    "id": "pnp_37D7_2401",
+    "name": "[Flydigi] Flydigi Vader 5 Pro",
+    "brand": "Flydigi",
+    "category": "gamepad",
+    "connectionType": "usb",
+    "connectionTypeLabel": "USB (Wireless Dongle)",
+    "enabled": true,
+    "telemetry": "PnP Active",
+    "lastActive": 0,
+    "batteryStatus": "unsupported",
+    "batteryType": "dongle",
+    "batteryLevel": null,
+    "batteryNote": "独自2.4GHzドングル経由のため残量読み取り非対応"
+  },
+  {
+    "id": "pnp_054C_0EC2",
+    "name": "[Sony PlayStation] Sony PlayStation Controller",
+    "brand": "Sony PlayStation",
+    "category": "gamepad",
+    "connectionType": "usb",
+    "connectionTypeLabel": "USB 有線",
+    "enabled": true,
+    "telemetry": "PnP Active",
+    "lastActive": 0,
+    "batteryStatus": "wired",
+    "batteryType": "wired",
+    "batteryLevel": null,
+    "batteryNote": "USB有線接続（常時給電）"
+  },
+  {
+    "id": "pnp_046D_C534_keyboard",
+    "name": "[Logicool / Logitech] Wireless Keyboard (Unifying)",
+    "brand": "Logicool / Logitech",
+    "category": "keyboard",
+    "connectionType": "usb",
+    "connectionTypeLabel": "USB (Unifying)",
+    "enabled": true,
+    "telemetry": "PnP Active",
+    "lastActive": 0,
+    "batteryStatus": "unsupported",
+    "batteryType": "dongle",
+    "batteryLevel": null,
+    "batteryNote": "独自2.4GHzドングル経由のため残量読み取り非対応"
+  }
+];
