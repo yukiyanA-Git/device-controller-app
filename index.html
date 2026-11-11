@@ -16,7 +16,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
-  <!-- Windows PnPハードウェア自動検出データ -->
+  <!-- Windows PnPハードウェア自動検出データ (ローカル生成 / 未生成時は空配列初期化) -->
+  <script>window.DETECTED_PNP_DEVICES = window.DETECTED_PNP_DEVICES || [];</script>
   <script src="devices_data.js"></script>
 
   <style>
@@ -624,6 +625,9 @@
         s.onload = () => {
           setDevices(getInitialDevices());
           showToast('✅ 接続デバイス一覧を最新状態に更新しました！');
+        };
+        s.onerror = () => {
+          showToast('⚠️ devices_data.js が見つかりません。scan_devices.ps1 を実行してください。');
         };
         document.body.appendChild(s);
       };

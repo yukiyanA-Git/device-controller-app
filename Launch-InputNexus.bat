@@ -8,7 +8,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0sc
 set EDGE_PATH="%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"
 set EDGE_PATH64="%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"
 
-set APP_PATH=%~dp0index_standalone.html
+set APP_PATH=%~dp0index.html
 
 if exist %EDGE_PATH64% (
     start "" %EDGE_PATH64% --app="file:///%APP_PATH:\=/%" --window-size=1280,850

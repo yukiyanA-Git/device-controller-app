@@ -13,16 +13,16 @@ namespace InputNexus
             try
             {
                 string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                string htmlPath = Path.Combine(baseDir, "index_standalone.html");
+                string htmlPath = Path.Combine(baseDir, "index.html");
 
                 if (!File.Exists(htmlPath))
                 {
-                    htmlPath = Path.Combine(baseDir, "index.html");
+                    htmlPath = Path.Combine(baseDir, "index_standalone.html");
                 }
 
                 if (!File.Exists(htmlPath))
                 {
-                    MessageBox.Show("index_standalone.html が見つかりませんでした。\nアプリケーションと同じフォルダに配置してください。", "InputNexus エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("index.html が見つかりませんでした。\nアプリケーションと同じフォルダに配置してください。", "InputNexus エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 

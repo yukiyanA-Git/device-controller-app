@@ -17,7 +17,7 @@ if (-not (Test-Path $InstallDir)) {
 
 # 2. Copy application files
 Write-Host "[1/3] Copying application files to $InstallDir..." -ForegroundColor Yellow
-Copy-Item "$SourceDir\index_standalone.html" "$InstallDir\" -Force
+Copy-Item "$SourceDir\index.html" "$InstallDir\" -Force
 Copy-Item "$SourceDir\Launch-InputNexus.bat" "$InstallDir\" -Force
 
 # 3. Create Desktop Shortcut

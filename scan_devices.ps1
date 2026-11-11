@@ -1,4 +1,4 @@
-$ErrorActionPreference = "SilentlyContinue"
+﻿$ErrorActionPreference = "SilentlyContinue"
 
 $VendorTable = @{
     "046D" = "Logicool / Logitech"
@@ -190,12 +190,15 @@ foreach ($dev in $pnp) {
     }
 }
 
+$targetFile = Join-Path $PSScriptRoot "devices_data.js"
 if ($devices.Count -gt 0) {
     $json = $devices | ConvertTo-Json -Compress
-    $targetFile = Join-Path $PSScriptRoot "devices_data.js"
     $jsContent = "window.DETECTED_PNP_DEVICES = " + $json + ";"
     [System.IO.File]::WriteAllText($targetFile, $jsContent, [System.Text.Encoding]::UTF8)
     Write-Host "Generated clean devices_data.js with $($devices.Count) physical devices."
 } else {
+    if (-not (Test-Path $targetFile)) {
+        [System.IO.File]::WriteAllText($targetFile, "window.DETECTED_PNP_DEVICES = [];", [System.Text.Encoding]::UTF8)
+    }
     Write-Host "PnP scan returned 0 devices, keeping existing devices_data.js."
 }

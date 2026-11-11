@@ -49,7 +49,9 @@ PCに同時接続された**ゲームコントローラー、キーボード、�
 
 ## 📤 他ユーザーへの配布方法
 
-リポジトリに含まれる `InputNexus_Package.zip` をそのまま送信・解凍するだけで、どのWindows PCでもインストール不要・即座にご利用いただけます。
+[GitHub Releases](https://github.com/yukiyanA-Git/device-controller-app/releases) から最新の `InputNexus_Package.zip` をダウンロード・解凍するだけで、どのWindows PCでもインストール不要・即座にご利用いただけます。
+
+ローカル初回起動時に `scan_devices.ps1` が自動実行され、お使いのPC環境のPnPデバイスデータが即座に生成・反映されます。
 
 ---
 

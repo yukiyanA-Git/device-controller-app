@@ -8,6 +8,22 @@ if (Test-Path $ZipPath) {
 
 Write-Host "Creating shareable zip package with native executable and custom icon..." -ForegroundColor Cyan
 
-Compress-Archive -Path "$SourceDir\InputNexus.exe", "$SourceDir\index_standalone.html", "$SourceDir\devices_data.js", "$SourceDir\scan_devices.ps1", "$SourceDir\native_bridge.ps1", "$SourceDir\Launch-InputNexus.bat", "$SourceDir\Install-InputNexus.ps1", "$SourceDir\README.txt", "$SourceDir\icon.jpg", "$SourceDir\app.ico" -DestinationPath $ZipPath -Force
+$filesToZip = @(
+    "$SourceDir\InputNexus.exe",
+    "$SourceDir\index.html",
+    "$SourceDir\scan_devices.ps1",
+    "$SourceDir\native_bridge.ps1",
+    "$SourceDir\Launch-InputNexus.bat",
+    "$SourceDir\Install-InputNexus.ps1",
+    "$SourceDir\README.txt",
+    "$SourceDir\icon.jpg",
+    "$SourceDir\app.ico"
+)
+
+if (Test-Path "$SourceDir\devices_data.js") {
+    $filesToZip += "$SourceDir\devices_data.js"
+}
+
+Compress-Archive -Path $filesToZip -DestinationPath $ZipPath -Force
 
 Write-Host "Zip package created successfully: $ZipPath" -ForegroundColor Green

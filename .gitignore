@@ -1,4 +1,29 @@
+# Dependencies
 node_modules/
 dist/
+
+# Logs & Temporary files
 *.log
+*.tmp
+*.bak
+
+# OS generated files
 .DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Environment variables & Local configurations
+.env
+.env.*
+*.local
+local_settings.*
+config.local.*
+
+# Local scan results & device privacy data (Generated locally by scan_devices.ps1)
+devices_data.js
+
+# Binary outputs & Packages (Distributed via GitHub Releases)
+InputNexus.exe
+InputNexus_Package.zip
+*.zip
